@@ -22,6 +22,7 @@ export const DEFAULT_SETTINGS: MianixSettings = {
 export interface CharacterCard {
   id: string;
   name: string;
+  avatar?: string; // Relative path to avatar image (e.g., "avatar.png")
   description: string;
   personality: string;
   scenario: string;
@@ -33,6 +34,7 @@ export interface CharacterCard {
 export interface CharacterCardWithPath extends CharacterCard {
   folderPath: string;
   filePath: string;
+  avatarUrl?: string; // Data URL or vault resource URL for avatar
 }
 
 /** Form data for creating/editing characters */

@@ -10,6 +10,7 @@ Builds on Phase 1 plugin boilerplate. Integrates React 18 into Obsidian's ItemVi
 - Create AppContext for Obsidian API access
 - Setup Zustand store foundation
 - Create base React component structure
+- **Avatar support for character cards**
 
 **Effort:** 4 hours
 
@@ -26,6 +27,8 @@ Builds on Phase 1 plugin boilerplate. Integrates React 18 into Obsidian's ItemVi
 | Zustand store setup | P1 | State management foundation |
 | Proper cleanup on view close | P0 | Memory leak prevention |
 | StrictMode in development | P2 | Catch React issues |
+| Avatar field in CharacterCard | P1 | Image file reference in frontmatter |
+| Avatar loading utility | P1 | Load image from vault as data URL |
 
 ---
 
@@ -67,8 +70,32 @@ src/
 ├── components/
 │   ├── App.tsx               # NEW: Root component
 │   └── Layout.tsx            # NEW: Layout structure
+├── utils/
+│   └── avatar.ts             # NEW: Avatar loading utility
 └── types/
-    └── index.ts
+    └── index.ts              # Updated with avatar field
+```
+
+## Avatar Design
+
+Characters stored as folders with avatar image:
+
+```
+characters/alice/
+├── card.md           # Frontmatter with avatar: "avatar.png"
+├── avatar.png        # Character avatar image
+└── dialogues/
+    └── ...
+```
+
+Frontmatter:
+```yaml
+---
+id: "uuid"
+name: "Alice"
+avatar: "avatar.png"   # Relative path within character folder
+description: "..."
+---
 ```
 
 ---

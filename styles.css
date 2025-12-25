@@ -1,37 +1,287 @@
 /* Mianix Roleplay Plugin Styles */
 
+/* View container */
+.mianix-view-container {
+  height: 100%;
+  overflow: hidden;
+}
+
+/* Main container */
 .mianix-roleplay-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  font-family: var(--font-interface);
+  position: relative;
+}
+
+/* Layout */
+.mianix-layout {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+.mianix-sidebar {
+  width: 200px;
+  min-width: 150px;
+  max-width: 300px;
+  border-right: 1px solid var(--background-modifier-border);
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.mianix-main {
+  flex: 1;
+  overflow-y: auto;
+}
+
+/* Sidebar content */
+.mianix-sidebar-content {
   display: flex;
   flex-direction: column;
   height: 100%;
   padding: 8px;
 }
 
-.mianix-placeholder {
+.mianix-sidebar-header {
+  margin-bottom: 8px;
+}
+
+.mianix-sidebar-header h3 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+/* Character list */
+.mianix-character-list {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.mianix-character-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.mianix-character-item:hover {
+  background-color: var(--background-modifier-hover);
+}
+
+.mianix-character-item.is-active {
+  background-color: var(--interactive-accent);
+  color: var(--text-on-accent);
+}
+
+.mianix-character-item.is-active .mianix-character-desc {
+  color: var(--text-on-accent);
+  opacity: 0.8;
+}
+
+/* Avatar styles */
+.mianix-character-avatar,
+.mianix-chat-avatar {
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  overflow: hidden;
+}
+
+.mianix-character-avatar img,
+.mianix-chat-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.mianix-avatar-placeholder {
+  width: 100%;
+  height: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 100%;
-  color: var(--text-muted);
+  background-color: var(--interactive-accent);
+  color: var(--text-on-accent);
+  font-weight: 600;
   font-size: 14px;
 }
 
-/* Layout */
-.mianix-layout {
+/* Character info */
+.mianix-character-info {
+  flex: 1;
+  min-width: 0;
   display: flex;
+  flex-direction: column;
+}
+
+.mianix-character-name {
+  font-weight: 500;
+  font-size: 13px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mianix-character-desc {
+  font-size: 11px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Add character button */
+.mianix-add-character {
+  margin-top: 8px;
+  width: 100%;
+}
+
+/* Main content */
+.mianix-main-content {
+  display: flex;
+  flex-direction: column;
   height: 100%;
+  padding: 8px;
+}
+
+.mianix-main-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Chat header */
+.mianix-chat-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.mianix-chat-header .mianix-chat-avatar {
+  width: 48px;
+  height: 48px;
+}
+
+.mianix-chat-header .mianix-avatar-placeholder {
+  font-size: 18px;
+}
+
+.mianix-chat-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.mianix-chat-info h3 {
+  margin: 0 0 4px 0;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.mianix-chat-info p {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Chat messages area */
+.mianix-chat-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px;
+}
+
+/* Chat input area */
+.mianix-chat-input {
+  padding: 12px;
+  border-top: 1px solid var(--background-modifier-border);
+}
+
+/* Placeholder text */
+.mianix-placeholder {
+  color: var(--text-faint);
+  font-style: italic;
+  text-align: center;
+}
+
+/* Buttons */
+.mianix-btn {
+  padding: 6px 12px;
+  border-radius: 4px;
+  font-size: 13px;
+  cursor: pointer;
+  border: 1px solid var(--background-modifier-border);
+  background-color: var(--background-secondary);
+  color: var(--text-normal);
+  transition: all 0.15s ease;
+}
+
+.mianix-btn:hover {
+  background-color: var(--background-modifier-hover);
+}
+
+.mianix-btn-primary {
+  background-color: var(--interactive-accent);
+  color: var(--text-on-accent);
+  border-color: var(--interactive-accent);
+}
+
+.mianix-btn-primary:hover {
+  background-color: var(--interactive-accent-hover);
+}
+
+/* Error display */
+.mianix-error {
+  background: var(--background-modifier-error);
+  color: var(--text-error);
+  padding: 8px 12px;
+  border-radius: 4px;
+  margin: 8px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   gap: 8px;
 }
 
-.mianix-sidebar {
-  width: 240px;
-  min-width: 200px;
-  border-right: 1px solid var(--background-modifier-border);
-  padding-right: 8px;
-  overflow-y: auto;
+.mianix-error span {
+  flex: 1;
 }
 
-.mianix-main {
-  flex: 1;
-  overflow-y: auto;
+.mianix-error button {
+  background: transparent;
+  border: 1px solid currentColor;
+  color: inherit;
+  padding: 2px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+/* Loading overlay */
+.mianix-loading {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  background: var(--background-secondary);
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  color: var(--text-muted);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }

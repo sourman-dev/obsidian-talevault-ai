@@ -40,7 +40,7 @@ importers:
         specifier: ^0.19.0
         version: 0.19.12
       obsidian:
-        specifier: latest
+        specifier: ^1.11.0
         version: 1.11.0(@codemirror/state@6.5.0)(@codemirror/view@6.38.6)
       typescript:
         specifier: ^5.3.0
