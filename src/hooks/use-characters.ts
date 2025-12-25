@@ -56,6 +56,14 @@ export function useCharacters() {
     return success;
   };
 
+  const importFromPng = async (pngArrayBuffer: ArrayBuffer) => {
+    const imported = await service.importFromPng(pngArrayBuffer);
+    if (imported) {
+      setCharacters([imported, ...characters]);
+    }
+    return imported;
+  };
+
   return {
     characters,
     isLoading,
@@ -64,5 +72,6 @@ export function useCharacters() {
     createCharacter,
     updateCharacter,
     deleteCharacter,
+    importFromPng,
   };
 }

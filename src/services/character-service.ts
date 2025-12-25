@@ -5,6 +5,7 @@ import { CHARACTERS_FOLDER } from '../constants';
 import type { CharacterCard, CharacterCardWithPath, CharacterFormData } from '../types';
 import { generateUniqueSlug } from '../utils/slug';
 import { getAvatarResourceUrl } from '../utils/avatar';
+import { parsePngCharacterCard, type CharacterCardData } from '../utils/png-parser';
 
 export class CharacterService {
   constructor(private app: App) {}
@@ -158,6 +159,71 @@ export class CharacterService {
 
     await this.app.vault.trash(folder, true);
     return true;
+  }
+
+  /**
+   * Import character from PNG file (SillyTavern/Chub.ai format)
+   * Extracts character data from PNG metadata and saves avatar
+   */
+  async importFromPng(pngArrayBuffer: ArrayBuffer): Promise<CharacterCardWithPath | null> {
+    const { vault } = this.app;
+
+    // Parse PNG metadata
+    const cardData = await parsePngCharacterCard(pngArrayBuffer);
+    if (!cardData) {
+      throw new Error('No character data found in PNG. Make sure this is a valid character card.');
+    }
+
+    // Generate unique slug
+    const existingFolders = await this.getExistingFolderNames();
+    const slug = generateUniqueSlug(cardData.name, existingFolders);
+    const folderPath = normalizePath(`${CHARACTERS_FOLDER}/${slug}`);
+    const cardFilePath = normalizePath(`${folderPath}/card.md`);
+    const avatarPath = normalizePath(`${folderPath}/avatar.png`);
+
+    // Create character data
+    const character: CharacterCard = {
+      id: uuidv4(),
+      name: cardData.name,
+      avatar: 'avatar.png',
+      description: cardData.description,
+      personality: cardData.personality,
+      scenario: cardData.scenario,
+      firstMessage: cardData.first_mes,
+      createdAt: new Date().toISOString(),
+    };
+
+    // Create folder structure
+    await this.ensureFolderExists(folderPath);
+
+    // Save avatar PNG
+    await vault.createBinary(avatarPath, pngArrayBuffer);
+
+    // Generate markdown with frontmatter
+    // Include additional fields as markdown content
+    let bodyContent = '';
+    if (cardData.mes_example) {
+      bodyContent += `\n## Example Messages\n\n${cardData.mes_example}\n`;
+    }
+    if (cardData.system_prompt) {
+      bodyContent += `\n## System Prompt\n\n${cardData.system_prompt}\n`;
+    }
+    if (cardData.creator_notes) {
+      bodyContent += `\n## Creator Notes\n\n${cardData.creator_notes}\n`;
+    }
+
+    const content = matter.stringify(bodyContent, character);
+    await vault.create(cardFilePath, content);
+
+    // Get avatar URL for display
+    const avatarUrl = getAvatarResourceUrl(this.app, folderPath, 'avatar.png');
+
+    return {
+      ...character,
+      folderPath,
+      filePath: cardFilePath,
+      avatarUrl,
+    };
   }
 
   // --- Private helpers ---
