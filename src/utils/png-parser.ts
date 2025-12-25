@@ -4,6 +4,15 @@
  * Compatible with SillyTavern, Chub.ai, and other character card formats
  */
 
+/**
+ * Decode base64 to UTF-8 string properly (handles non-ASCII characters)
+ */
+function decodeBase64ToUtf8(base64: string): string {
+  const binary = atob(base64);
+  const bytes = new Uint8Array([...binary].map((char) => char.charCodeAt(0)));
+  return new TextDecoder('utf-8').decode(bytes);
+}
+
 export interface CharacterCardData {
   name: string;
   description: string;
@@ -102,8 +111,8 @@ function parseTextChunk(
   const base64Text = new TextDecoder().decode(textData);
 
   try {
-    // Decode base64 to JSON
-    const jsonStr = atob(base64Text);
+    // Decode base64 to UTF-8 string properly
+    const jsonStr = decodeBase64ToUtf8(base64Text);
     const parsed = JSON.parse(jsonStr);
 
     // Handle different formats (V1, V2, tavern)
