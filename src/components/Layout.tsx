@@ -1,84 +1,18 @@
 import type { ReactNode } from 'react';
+import { CharacterList } from './characters/CharacterList';
 import { useRoleplayStore } from '../store';
-import type { CharacterCardWithPath } from '../types';
 
 interface LayoutProps {
-  sidebar: ReactNode;
   main: ReactNode;
 }
 
-export function Layout({ sidebar, main }: LayoutProps) {
+export function Layout({ main }: LayoutProps) {
   return (
     <div className="mianix-layout">
-      <aside className="mianix-sidebar">{sidebar}</aside>
+      <aside className="mianix-sidebar">
+        <CharacterList />
+      </aside>
       <main className="mianix-main">{main}</main>
-    </div>
-  );
-}
-
-// Sidebar with character list placeholder
-export function Sidebar() {
-  const { characters, currentCharacter, setCurrentCharacter } = useRoleplayStore();
-
-  return (
-    <div className="mianix-sidebar-content">
-      <div className="mianix-sidebar-header">
-        <h3>Characters</h3>
-      </div>
-
-      {characters.length === 0 ? (
-        <p className="mianix-placeholder">No characters yet</p>
-      ) : (
-        <div className="mianix-character-list">
-          {characters.map((char) => (
-            <CharacterItem
-              key={char.id}
-              character={char}
-              isActive={currentCharacter?.id === char.id}
-              onClick={() => setCurrentCharacter(char)}
-            />
-          ))}
-        </div>
-      )}
-
-      <button className="mianix-btn mianix-btn-primary mianix-add-character">
-        + New Character
-      </button>
-    </div>
-  );
-}
-
-interface CharacterItemProps {
-  character: CharacterCardWithPath;
-  isActive: boolean;
-  onClick: () => void;
-}
-
-function CharacterItem({ character, isActive, onClick }: CharacterItemProps) {
-  return (
-    <div
-      className={`mianix-character-item ${isActive ? 'is-active' : ''}`}
-      onClick={onClick}
-      role="button"
-      tabIndex={0}
-      onKeyDown={(e) => e.key === 'Enter' && onClick()}
-    >
-      <div className="mianix-character-avatar">
-        {character.avatarUrl ? (
-          <img src={character.avatarUrl} alt={character.name} />
-        ) : (
-          <div className="mianix-avatar-placeholder">
-            {character.name.charAt(0).toUpperCase()}
-          </div>
-        )}
-      </div>
-      <div className="mianix-character-info">
-        <span className="mianix-character-name">{character.name}</span>
-        <span className="mianix-character-desc">
-          {character.description.slice(0, 50)}
-          {character.description.length > 50 ? '...' : ''}
-        </span>
-      </div>
     </div>
   );
 }

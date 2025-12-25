@@ -1,5 +1,5 @@
 import { useRoleplayStore } from '../store';
-import { Layout, Sidebar, MainContent } from './Layout';
+import { Layout, MainContent } from './Layout';
 
 export function App() {
   const { isLoading, error, setError } = useRoleplayStore();
@@ -13,7 +13,7 @@ export function App() {
         </div>
       )}
 
-      <Layout sidebar={<Sidebar />} main={<MainContent />} />
+      <Layout main={<MainContent />} />
 
       {isLoading && <div className="mianix-loading">Loading...</div>}
     </div>

@@ -285,3 +285,235 @@
   color: var(--text-muted);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
+
+/* Character List Container */
+.mianix-character-list-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 8px;
+}
+
+.mianix-list-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--background-modifier-border);
+  margin-bottom: 8px;
+}
+
+.mianix-list-header span {
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.mianix-list-header button {
+  padding: 2px 8px;
+  font-size: 12px;
+  background: var(--interactive-accent);
+  color: var(--text-on-accent);
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.mianix-list-header button:hover {
+  background: var(--interactive-accent-hover);
+}
+
+/* Character actions on item */
+.mianix-character-actions {
+  display: flex;
+  gap: 4px;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.mianix-character-item:hover .mianix-character-actions {
+  opacity: 1;
+}
+
+.mianix-character-actions button {
+  padding: 2px 6px;
+  font-size: 12px;
+  background: var(--background-primary);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 3px;
+  cursor: pointer;
+  color: var(--text-muted);
+}
+
+.mianix-character-actions button:hover {
+  background: var(--background-modifier-hover);
+  color: var(--text-normal);
+}
+
+/* Modal */
+.mianix-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.mianix-modal {
+  background: var(--background-primary);
+  border-radius: 8px;
+  width: 90%;
+  max-width: 500px;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
+}
+
+.mianix-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.mianix-modal-header h3 {
+  margin: 0;
+  font-size: 16px;
+}
+
+.mianix-modal-close {
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  color: var(--text-muted);
+  line-height: 1;
+  padding: 0;
+}
+
+.mianix-modal-close:hover {
+  color: var(--text-normal);
+}
+
+.mianix-modal-body {
+  padding: 16px;
+  overflow-y: auto;
+}
+
+/* Form */
+.mianix-character-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.mianix-form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.mianix-form-field label {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+.mianix-form-field input,
+.mianix-form-field textarea {
+  padding: 8px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 4px;
+  background: var(--background-primary);
+  color: var(--text-normal);
+  font-family: inherit;
+  font-size: 13px;
+}
+
+.mianix-form-field input:focus,
+.mianix-form-field textarea:focus {
+  outline: none;
+  border-color: var(--interactive-accent);
+}
+
+.mianix-form-field textarea {
+  resize: vertical;
+}
+
+.mianix-form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.mianix-form-actions button {
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 13px;
+  border: 1px solid var(--background-modifier-border);
+  background: var(--background-secondary);
+  color: var(--text-normal);
+}
+
+.mianix-form-actions button:hover {
+  background: var(--background-modifier-hover);
+}
+
+.mianix-form-actions button.mianix-btn-primary {
+  background: var(--interactive-accent);
+  color: var(--text-on-accent);
+  border-color: var(--interactive-accent);
+}
+
+.mianix-form-actions button.mianix-btn-primary:hover {
+  background: var(--interactive-accent-hover);
+}
+
+.mianix-form-actions button.mianix-btn-danger {
+  background: var(--text-error);
+  color: white;
+  border: none;
+}
+
+.mianix-form-actions button.mianix-btn-danger:hover {
+  filter: brightness(0.9);
+}
+
+.mianix-form-actions button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Empty/Loading States */
+.mianix-empty-state {
+  text-align: center;
+  padding: 24px 8px;
+  color: var(--text-muted);
+}
+
+.mianix-empty-state button {
+  margin-top: 8px;
+  background: var(--interactive-accent);
+  color: var(--text-on-accent);
+  border: none;
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.mianix-loading-text,
+.mianix-error-text {
+  padding: 16px;
+  text-align: center;
+  color: var(--text-muted);
+}
+
+.mianix-error-text button {
+  margin-top: 8px;
+}
