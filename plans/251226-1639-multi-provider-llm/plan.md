@@ -34,7 +34,7 @@ Refactor LLM system từ single provider sang multi-provider với:
 |-------|-------------|--------|--------|-----------|
 | [Phase 1](./phase-01-provider-types.md) | Type definitions & provider presets | Done | 1h | 2025-12-26 |
 | [Phase 2](./phase-02-settings-migration.md) | Settings migration & storage | Done | 1.5h | 2025-12-26 |
-| [Phase 3](./phase-03-model-fetcher.md) | Model fetcher service | Pending | 1.5h | - |
+| [Phase 3](./phase-03-model-fetcher.md) | Model fetcher service | Done | 1.5h | 2025-12-26 |
 | [Phase 4](./phase-04-settings-ui.md) | Settings tab UI refactor | Pending | 2h | - |
 | [Phase 5](./phase-05-llm-service-refactor.md) | LLM service refactor | Pending | 1.5h | - |
 | [Phase 6](./phase-06-token-tracking.md) | Token tracking per message | Pending | 0.5h | - |
