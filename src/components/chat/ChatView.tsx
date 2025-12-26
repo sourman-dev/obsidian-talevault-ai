@@ -4,7 +4,8 @@ import { MessageInput } from './MessageInput';
 import { LLMOptionsPanel } from './LLMOptionsPanel';
 import { useDialogue } from '../../hooks/use-dialogue';
 import { useLlm } from '../../hooks/use-llm';
-import type { CharacterCardWithPath, DialogueMessageWithContent } from '../../types';
+import type { LLMResponse } from '../../services/llm-service';
+import type { CharacterCardWithPath, DialogueMessageWithContent, MessageTokenUsage } from '../../types';
 
 interface ChatViewProps {
   character: CharacterCardWithPath | null;
@@ -93,11 +94,21 @@ export function ChatView({ character }: ChatViewProps) {
     await generateResponse(
       character,
       messagesWithUser,
-      async (response) => {
-        const assistantMsg = await addAssistantMessage(response);
+      async (responseContent, llmResponse?: LLMResponse) => {
+        // Build token usage from LLM response
+        const tokenUsage: MessageTokenUsage | undefined = llmResponse
+          ? {
+              providerId: llmResponse.providerId,
+              model: llmResponse.model,
+              inputTokens: llmResponse.usage?.promptTokens,
+              outputTokens: llmResponse.usage?.completionTokens,
+            }
+          : undefined;
+
+        const assistantMsg = await addAssistantMessage(responseContent, tokenUsage);
         // Parse and save suggestions to the assistant message
         if (assistantMsg) {
-          const prompts = parseSuggestedPrompts(response);
+          const prompts = parseSuggestedPrompts(responseContent);
           if (prompts.length > 0) {
             await saveSuggestions(assistantMsg.filePath, prompts);
           }
@@ -129,10 +140,19 @@ export function ChatView({ character }: ChatViewProps) {
     await generateResponse(
       character,
       remaining,
-      async (response) => {
-        const assistantMsg = await addAssistantMessage(response);
+      async (responseContent, llmResponse?: LLMResponse) => {
+        const tokenUsage: MessageTokenUsage | undefined = llmResponse
+          ? {
+              providerId: llmResponse.providerId,
+              model: llmResponse.model,
+              inputTokens: llmResponse.usage?.promptTokens,
+              outputTokens: llmResponse.usage?.completionTokens,
+            }
+          : undefined;
+
+        const assistantMsg = await addAssistantMessage(responseContent, tokenUsage);
         if (assistantMsg) {
-          const prompts = parseSuggestedPrompts(response);
+          const prompts = parseSuggestedPrompts(responseContent);
           if (prompts.length > 0) {
             await saveSuggestions(assistantMsg.filePath, prompts);
           }

@@ -1,7 +1,8 @@
 ---
 phase: 6
 title: "Token Tracking Per Message"
-status: pending
+status: completed
+completed_date: 2025-12-26
 effort: 0.5h
 depends: [phase-01, phase-05]
 ---
@@ -234,15 +235,16 @@ The LlmService (Phase 5) normalizes these to a consistent format.
 
 ## Success Criteria
 
-- [ ] DialogueMessage type includes token fields
-- [ ] Assistant messages store providerId + model
-- [ ] Token counts saved when provider returns them
-- [ ] Frontmatter correctly formatted in .md files
-- [ ] (Optional) UI displays token usage
+- [x] ✅ DialogueMessage type includes token fields
+- [x] ✅ Assistant messages store providerId + model
+- [x] ✅ Token counts saved when provider returns them
+- [x] ✅ Frontmatter correctly formatted in .md files
+- [ ] (Optional) UI displays token usage - skipped, can add later
 
 ## Todo
 
-- [ ] Add token fields to DialogueMessage type
-- [ ] Update DialogueService.createAssistantMessage
-- [ ] Update useLLM to pass usage info
+- [x] ✅ Add token fields to DialogueMessage type
+- [x] ✅ Update DialogueService.appendMessage to accept tokenUsage
+- [x] ✅ Update use-dialogue hook to pass usage info
+- [x] ✅ Update ChatView.tsx to build and pass tokenUsage
 - [ ] (Optional) Add token display in UI

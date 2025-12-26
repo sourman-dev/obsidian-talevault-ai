@@ -7,6 +7,7 @@ import type {
   CharacterCardWithPath,
   DialogueMessageWithContent,
   LLMOptions,
+  MessageTokenUsage,
 } from '../types';
 
 /**
@@ -99,7 +100,7 @@ export function useDialogue(character: CharacterCardWithPath | null) {
   // Add assistant message (for LLM response)
   // Uses store.getState() to get latest messages (avoids stale closure)
   const addAssistantMessage = useCallback(
-    async (content: string) => {
+    async (content: string, tokenUsage?: MessageTokenUsage) => {
       if (!characterFolderPath) return null;
 
       // Get latest messages from store to avoid stale closure
@@ -113,7 +114,8 @@ export function useDialogue(character: CharacterCardWithPath | null) {
           characterFolderPath,
           'assistant',
           content,
-          parentId
+          parentId,
+          tokenUsage
         );
         addMessage(assistantMsg);
         return assistantMsg;

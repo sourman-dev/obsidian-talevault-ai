@@ -1,13 +1,14 @@
 ---
 title: "Multi-Provider LLM System"
 description: "Provider management với model auto-fetch, per-character config, và token tracking"
-status: in-progress
+status: completed
 priority: P1
 effort: 8h
 branch: master
 tags: [llm, provider, settings, refactor]
 created: 2025-12-26
 updated: 2025-12-26
+completed: 2025-12-26
 ---
 
 # Multi-Provider LLM System
@@ -37,7 +38,7 @@ Refactor LLM system từ single provider sang multi-provider với:
 | [Phase 3](./phase-03-model-fetcher.md) | Model fetcher service | Done | 1.5h | 2025-12-26 |
 | [Phase 4](./phase-04-settings-ui.md) | Settings tab UI refactor | Done | 2h | 2025-12-26 |
 | [Phase 5](./phase-05-llm-service-refactor.md) | LLM service refactor | Done | 1.5h | 2025-12-26 |
-| [Phase 6](./phase-06-token-tracking.md) | Token tracking per message | Pending | 0.5h | - |
+| [Phase 6](./phase-06-token-tracking.md) | Token tracking per message | Done | 0.5h | 2025-12-26 |
 
 ## Architecture
 
@@ -158,3 +159,15 @@ DialogueMessage (per-turn)
 - Backward compatibility with legacy `settings.llm` via `isMultiProviderConfigured()` check
 - Extraction provider properly falls back to text provider when not configured
 - Stream parsing captures usage from final chunk (OpenAI `stream_options: { include_usage: true }`)
+
+**Phase 6 (Completed 2025-12-26)**
+- ✅ Added `MessageTokenUsage` type and token fields to `DialogueMessage`
+- ✅ Updated `DialogueService.appendMessage` to accept optional `tokenUsage`
+- ✅ Updated `use-dialogue.ts` hook's `addAssistantMessage` to pass token usage
+- ✅ Updated `ChatView.tsx` to extract token info from `LLMResponse`
+- ✅ Build and typecheck passed (0 errors)
+
+**Implementation notes:**
+- Token tracking stored in message frontmatter (providerId, model, inputTokens, outputTokens)
+- Only assistant messages store token info
+- UI display of tokens skipped (optional, can add later)

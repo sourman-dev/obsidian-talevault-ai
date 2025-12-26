@@ -4,6 +4,7 @@ import type {
   DialogueMessageWithContent,
   DialogueSession,
   LLMOptions,
+  MessageTokenUsage,
 } from '../types';
 import type { MessageIndexEntry } from '../types/memory';
 import { DEFAULT_LLM_OPTIONS } from '../presets';
@@ -178,12 +179,14 @@ export class DialogueService {
 
   /**
    * Append a new message to dialogue
+   * @param tokenUsage - Optional token tracking for assistant messages
    */
   async appendMessage(
     characterFolderPath: string,
     role: 'user' | 'assistant',
     content: string,
-    parentId: string | null
+    parentId: string | null,
+    tokenUsage?: MessageTokenUsage
   ): Promise<DialogueMessageWithContent> {
     const messagesPath = normalizePath(`${characterFolderPath}/messages`);
 
@@ -201,6 +204,13 @@ export class DialogueService {
       role,
       parentId,
       timestamp: new Date().toISOString(),
+      // Add token tracking for assistant messages
+      ...(role === 'assistant' && tokenUsage && {
+        providerId: tokenUsage.providerId,
+        model: tokenUsage.model,
+        inputTokens: tokenUsage.inputTokens,
+        outputTokens: tokenUsage.outputTokens,
+      }),
     };
 
     // Generate file content

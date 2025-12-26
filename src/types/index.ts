@@ -113,6 +113,14 @@ export interface DialogueSession {
   llmOptions: LLMOptions;
 }
 
+/** Token usage info for assistant messages */
+export interface MessageTokenUsage {
+  providerId: string;
+  model: string;
+  inputTokens?: number;
+  outputTokens?: number;
+}
+
 /** Dialogue message frontmatter */
 export interface DialogueMessage {
   id: string;
@@ -121,6 +129,11 @@ export interface DialogueMessage {
   timestamp: string;
   /** Suggested prompts extracted from assistant response */
   suggestions?: string[];
+  /** Token tracking (assistant messages only) */
+  providerId?: string;
+  model?: string;
+  inputTokens?: number;
+  outputTokens?: number;
 }
 
 /** Dialogue message with content */
