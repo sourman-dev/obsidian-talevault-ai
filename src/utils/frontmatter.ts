@@ -51,9 +51,11 @@ export function stringifyFrontmatter<T = Record<string, unknown>>(
   content: string = ''
 ): string {
   const yamlStr = stringifyYaml(data, {
-    lineWidth: 0, // No line wrapping
+    lineWidth: 0, // No line wrapping - prevents splitting long strings
     defaultStringType: 'QUOTE_DOUBLE',
     defaultKeyType: 'PLAIN',
+    // Ensure arrays stay as proper YAML arrays
+    blockQuote: 'literal',
   });
 
   return `---\n${yamlStr}---\n${content}`;

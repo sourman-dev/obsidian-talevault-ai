@@ -372,12 +372,29 @@ export class DialogueService {
       return null;
     }
 
+    // Normalize suggestions - handle both array and string (legacy) formats
+    let suggestions: string[] | undefined;
+    if (data.suggestions) {
+      if (Array.isArray(data.suggestions)) {
+        // Clean up suggestions - remove brackets if present
+        suggestions = data.suggestions
+          .map((s: string) => s.replace(/^\[|\]$/g, '').trim())
+          .filter((s: string) => s.length > 0);
+      } else if (typeof data.suggestions === 'string') {
+        // Legacy format: "item1 | item2 | item3"
+        suggestions = (data.suggestions as string)
+          .split(/\s*\|\s*/)
+          .map((s) => s.replace(/^\[|\]$/g, '').trim())
+          .filter((s) => s.length > 0);
+      }
+    }
+
     return {
       id: data.id,
       role: data.role,
       parentId: data.parentId || null,
       timestamp: data.timestamp || new Date().toISOString(),
-      suggestions: data.suggestions || undefined,
+      suggestions,
       content: body.trim(),
       filePath: file.path,
     };

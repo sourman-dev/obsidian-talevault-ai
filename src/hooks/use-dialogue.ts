@@ -97,11 +97,16 @@ export function useDialogue(character: CharacterCardWithPath | null) {
   );
 
   // Add assistant message (for LLM response)
+  // Uses store.getState() to get latest messages (avoids stale closure)
   const addAssistantMessage = useCallback(
     async (content: string) => {
       if (!characterFolderPath) return null;
 
-      const parentId = messages.length > 0 ? messages[messages.length - 1].id : null;
+      // Get latest messages from store to avoid stale closure
+      const currentMessages = useRoleplayStore.getState().messages;
+      const parentId = currentMessages.length > 0
+        ? currentMessages[currentMessages.length - 1].id
+        : null;
 
       try {
         const assistantMsg = await service.appendMessage(
@@ -117,7 +122,7 @@ export function useDialogue(character: CharacterCardWithPath | null) {
         return null;
       }
     },
-    [characterFolderPath, messages, service, addMessage]
+    [characterFolderPath, service, addMessage]
   );
 
   // Update message content (for editing)
