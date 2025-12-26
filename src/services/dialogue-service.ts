@@ -1,5 +1,4 @@
 import { App, TFile, TFolder, normalizePath } from 'obsidian';
-import matter from 'gray-matter';
 import type {
   DialogueMessage,
   DialogueMessageWithContent,
@@ -9,6 +8,7 @@ import type {
 import type { MessageIndexEntry } from '../types/memory';
 import { DEFAULT_LLM_OPTIONS } from '../presets';
 import { IndexService } from './index-service';
+import { parseFrontmatter, stringifyFrontmatter } from '../utils/frontmatter';
 
 /**
  * DialogueService manages dialogue for characters.
@@ -204,7 +204,7 @@ export class DialogueService {
     };
 
     // Generate file content
-    const fileContent = matter.stringify(content, message);
+    const fileContent = stringifyFrontmatter(message, content);
 
     // Create file
     await this.app.vault.create(filePath, fileContent);
@@ -236,10 +236,10 @@ export class DialogueService {
 
     // Read existing to preserve metadata
     const existingContent = await this.app.vault.read(file);
-    const { data } = matter(existingContent);
+    const { data } = parseFrontmatter(existingContent);
 
     // Generate new content with same metadata
-    const newContent = matter.stringify(content, data);
+    const newContent = stringifyFrontmatter(data, content);
     await this.app.vault.modify(file, newContent);
   }
 
@@ -256,12 +256,12 @@ export class DialogueService {
     }
 
     const existingContent = await this.app.vault.read(file);
-    const { data, content } = matter(existingContent);
+    const { data, content } = parseFrontmatter(existingContent);
 
     // Add suggestions to frontmatter
-    data.suggestions = suggestions;
+    const updatedData = { ...data, suggestions };
 
-    const newContent = matter.stringify(content, data);
+    const newContent = stringifyFrontmatter(updatedData, content);
     await this.app.vault.modify(file, newContent);
   }
 
@@ -365,8 +365,8 @@ export class DialogueService {
   private async readMessageFile(
     file: TFile
   ): Promise<DialogueMessageWithContent | null> {
-    const content = await this.app.vault.read(file);
-    const { data, content: body } = matter(content);
+    const rawContent = await this.app.vault.read(file);
+    const { data, content: body } = parseFrontmatter<DialogueMessage>(rawContent);
 
     if (!data.id || !data.role) {
       return null;

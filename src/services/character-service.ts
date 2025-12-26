@@ -1,11 +1,11 @@
 import { App, TFile, TFolder, normalizePath } from 'obsidian';
-import matter from 'gray-matter';
 import { v4 as uuidv4 } from 'uuid';
 import { CHARACTERS_FOLDER } from '../constants';
 import type { CharacterCard, CharacterCardWithPath, CharacterFormData } from '../types';
 import { generateUniqueSlug } from '../utils/slug';
 import { loadAvatarAsDataUrl } from '../utils/avatar';
-import { parsePngCharacterCard, type CharacterCardData } from '../utils/png-parser';
+import { parseFrontmatter, stringifyFrontmatter } from '../utils/frontmatter';
+import { parsePngCharacterCard } from '../utils/png-parser';
 import { DialogueService } from './dialogue-service';
 
 export class CharacterService {
@@ -93,7 +93,7 @@ export class CharacterService {
     await this.ensureFolderExists(folderPath);
 
     // Generate markdown with frontmatter
-    const content = matter.stringify('', character);
+    const content = stringifyFrontmatter(character);
 
     // Create file
     await vault.create(filePath, content);
@@ -129,7 +129,7 @@ export class CharacterService {
     };
 
     // Generate new content
-    const content = matter.stringify('', updated);
+    const content = stringifyFrontmatter(updated);
 
     // Get file and update
     const file = this.app.vault.getAbstractFileByPath(existing.filePath);
@@ -211,7 +211,7 @@ export class CharacterService {
       bodyContent += `\n## Creator Notes\n\n${cardData.creator_notes}\n`;
     }
 
-    const content = matter.stringify(bodyContent, character);
+    const content = stringifyFrontmatter(character, bodyContent);
     await vault.create(cardFilePath, content);
 
     // Initialize dialogue session for this character
@@ -241,7 +241,7 @@ export class CharacterService {
     folderPath: string
   ): Promise<CharacterCardWithPath | null> {
     const content = await this.app.vault.read(file);
-    const { data } = matter(content);
+    const { data } = parseFrontmatter<CharacterCard>(content);
 
     // Validate required fields
     if (!data.id || !data.name) {
