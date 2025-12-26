@@ -1,6 +1,6 @@
 {
-  "name": "mianix-roleplay",
-  "version": "0.1.0",
+  "name": "talevault-ai",
+  "version": "0.2.0",
   "description": "Obsidian roleplay plugin with AI character cards",
   "main": "main.js",
   "scripts": {
