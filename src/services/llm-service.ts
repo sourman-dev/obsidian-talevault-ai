@@ -1,9 +1,21 @@
+/**
+ * LLM Service for OpenAI-compatible APIs
+ * Supports: OpenAI, Google AI, OpenRouter, Groq, local models, etc.
+ */
+
 import type {
   MianixSettings,
   CharacterCardWithPath,
   DialogueMessageWithContent,
   LLMOptions,
 } from '../types';
+import {
+  resolveProvider,
+  buildAuthHeaders,
+  isMultiProviderConfigured,
+  type ModelOverrides,
+  type ResolvedProvider,
+} from '../utils/provider-resolver';
 import { DEFAULT_LLM_OPTIONS } from '../presets';
 
 /** OpenAI-compatible message format */
@@ -24,15 +36,61 @@ export interface LLMContext {
   relevantMemories?: string;
 }
 
+/** Token usage info */
+export interface TokenUsage {
+  promptTokens: number;
+  completionTokens: number;
+  totalTokens: number;
+}
+
+/** LLM response with usage info for token tracking */
+export interface LLMResponse {
+  content: string;
+  usage?: TokenUsage;
+  providerId: string;
+  model: string;
+}
+
 /** Streaming callback */
 type OnChunk = (chunk: string, done: boolean) => void;
 
 /**
- * LLM Service for OpenAI-compatible APIs
- * Supports: OpenAI, OpenRouter, local models (Ollama, LM Studio), etc.
+ * LLM Service for multi-provider chat completions
  */
 export class LlmService {
   constructor(private settings: MianixSettings) {}
+
+  /**
+   * Resolve provider for text generation
+   * Falls back to legacy settings if new system not configured
+   */
+  private getTextProvider(characterOverride?: ModelOverrides): ResolvedProvider {
+    // Try new multi-provider system first
+    if (isMultiProviderConfigured(this.settings)) {
+      const resolved = resolveProvider(this.settings, 'text', characterOverride);
+      if (resolved) {
+        return resolved;
+      }
+    }
+
+    // Fallback to legacy settings
+    const { baseUrl, apiKey, modelName } = this.settings.llm;
+    if (!apiKey) {
+      throw new Error('No LLM provider configured. Please add a provider in settings.');
+    }
+
+    return {
+      provider: {
+        id: 'legacy',
+        name: 'Legacy Provider',
+        baseUrl,
+        apiKey,
+        defaultModel: modelName,
+      },
+      model: modelName,
+      providerId: 'legacy',
+    };
+  }
 
   /**
    * Build system prompt from character card + presets + memories
@@ -113,15 +171,17 @@ export class LlmService {
 
   /**
    * Send chat completion request (non-streaming)
+   * Returns content + usage info for token tracking
    */
   async chat(
     character: CharacterCardWithPath,
     dialogueMessages: DialogueMessageWithContent[],
     presets: LoadedPresets,
     llmOptions: LLMOptions = DEFAULT_LLM_OPTIONS,
-    context?: LLMContext
-  ): Promise<string> {
-    const { baseUrl, apiKey, modelName } = this.settings.llm;
+    context?: LLMContext,
+    characterOverride?: ModelOverrides
+  ): Promise<LLMResponse> {
+    const { provider, model, providerId } = this.getTextProvider(characterOverride);
 
     const messages = this.buildMessages(
       character,
@@ -131,19 +191,15 @@ export class LlmService {
       context
     );
 
-    const response = await fetch(`${baseUrl}/chat/completions`, {
+    const response = await fetch(`${provider.baseUrl}/chat/completions`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${apiKey}`,
-      },
+      headers: buildAuthHeaders(provider),
       body: JSON.stringify({
-        model: modelName,
+        model,
         messages,
         stream: false,
         temperature: llmOptions.temperature,
         top_p: llmOptions.topP,
-        // Note: maxTokens not sent - use responseLength in prompt instead
       }),
     });
 
@@ -153,11 +209,24 @@ export class LlmService {
     }
 
     const data = await response.json();
-    return data.choices[0]?.message?.content || '';
+
+    return {
+      content: data.choices[0]?.message?.content || '',
+      usage: data.usage
+        ? {
+            promptTokens: data.usage.prompt_tokens,
+            completionTokens: data.usage.completion_tokens,
+            totalTokens: data.usage.total_tokens,
+          }
+        : undefined,
+      providerId,
+      model,
+    };
   }
 
   /**
    * Send chat completion request with streaming
+   * Note: Token counts may not be available in streaming mode for all providers
    */
   async chatStream(
     character: CharacterCardWithPath,
@@ -165,9 +234,10 @@ export class LlmService {
     onChunk: OnChunk,
     presets: LoadedPresets,
     llmOptions: LLMOptions = DEFAULT_LLM_OPTIONS,
-    context?: LLMContext
-  ): Promise<string> {
-    const { baseUrl, apiKey, modelName } = this.settings.llm;
+    context?: LLMContext,
+    characterOverride?: ModelOverrides
+  ): Promise<LLMResponse> {
+    const { provider, model, providerId } = this.getTextProvider(characterOverride);
 
     const messages = this.buildMessages(
       character,
@@ -177,19 +247,17 @@ export class LlmService {
       context
     );
 
-    const response = await fetch(`${baseUrl}/chat/completions`, {
+    const response = await fetch(`${provider.baseUrl}/chat/completions`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${apiKey}`,
-      },
+      headers: buildAuthHeaders(provider),
       body: JSON.stringify({
-        model: modelName,
+        model,
         messages,
         stream: true,
         temperature: llmOptions.temperature,
         top_p: llmOptions.topP,
-        // Note: maxTokens not sent - use responseLength in prompt instead
+        // Request usage in stream (OpenAI supports this)
+        stream_options: { include_usage: true },
       }),
     });
 
@@ -205,6 +273,7 @@ export class LlmService {
 
     const decoder = new TextDecoder();
     let fullContent = '';
+    let usage: TokenUsage | undefined;
 
     try {
       while (true) {
@@ -219,11 +288,21 @@ export class LlmService {
             const data = line.slice(6);
             if (data === '[DONE]') {
               onChunk('', true);
-              return fullContent;
+              return { content: fullContent, usage, providerId, model };
             }
 
             try {
               const parsed = JSON.parse(data);
+
+              // Capture usage from final chunk (OpenAI format)
+              if (parsed.usage) {
+                usage = {
+                  promptTokens: parsed.usage.prompt_tokens,
+                  completionTokens: parsed.usage.completion_tokens,
+                  totalTokens: parsed.usage.total_tokens,
+                };
+              }
+
               const content = parsed.choices[0]?.delta?.content || '';
               if (content) {
                 fullContent += content;
@@ -240,6 +319,6 @@ export class LlmService {
     }
 
     onChunk('', true);
-    return fullContent;
+    return { content: fullContent, usage, providerId, model };
   }
 }

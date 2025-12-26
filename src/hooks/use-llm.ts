@@ -1,9 +1,10 @@
 import { useState, useCallback, useMemo } from 'react';
 import { useApp } from '../context/app-context';
-import { LlmService, type LLMContext } from '../services/llm-service';
+import { LlmService, type LLMContext, type LLMResponse } from '../services/llm-service';
 import { PresetService } from '../services/preset-service';
 import { DialogueService } from '../services/dialogue-service';
 import { MemoryExtractionService } from '../services/memory-extraction-service';
+import { isMultiProviderConfigured } from '../utils/provider-resolver';
 import { DEFAULT_LLM_OPTIONS } from '../presets';
 import type {
   CharacterCardWithPath,
@@ -28,6 +29,18 @@ export function useLlm() {
   const dialogueService = useMemo(() => new DialogueService(app), [app]);
 
   /**
+   * Check if LLM is properly configured
+   */
+  const isConfigured = useCallback((): boolean => {
+    // Check new multi-provider system
+    if (isMultiProviderConfigured(settings)) {
+      return true;
+    }
+    // Fallback to legacy settings
+    return !!settings.llm.apiKey;
+  }, [settings]);
+
+  /**
    * Generate response with streaming
    * Uses BM25 to retrieve relevant memories from past conversations
    */
@@ -35,11 +48,11 @@ export function useLlm() {
     async (
       character: CharacterCardWithPath,
       messages: DialogueMessageWithContent[],
-      onComplete: (content: string) => Promise<void>,
+      onComplete: (content: string, response?: LLMResponse) => Promise<void>,
       llmOptions: LLMOptions = DEFAULT_LLM_OPTIONS
     ) => {
-      if (!settings.llm.apiKey) {
-        setError('API key not configured. Go to Settings > Mianix Roleplay.');
+      if (!isConfigured()) {
+        setError('No LLM provider configured. Go to Settings > Mianix Roleplay.');
         return;
       }
 
@@ -72,7 +85,9 @@ export function useLlm() {
         // Use only recent messages (not all history)
         const recentMessages = messages.slice(-RECENT_MESSAGES_COUNT);
 
-        const fullContent = await llmService.chatStream(
+        // TODO: Pass character-level model overrides when implemented
+        // Currently using global defaults only
+        const response = await llmService.chatStream(
           character,
           recentMessages,
           (chunk, done) => {
@@ -83,6 +98,7 @@ export function useLlm() {
           presets,
           llmOptions,
           context
+          // session.modelConfig // Future: character-level override
         );
 
         // IMPORTANT: Set isGenerating false BEFORE onComplete
@@ -90,15 +106,15 @@ export function useLlm() {
         setIsGenerating(false);
         setStreamingContent('');
 
-        // Save completed message
-        await onComplete(fullContent);
+        // Save completed message with response metadata
+        await onComplete(response.content, response);
 
         // Run memory extraction in background (async, non-blocking)
         if (settings.enableMemoryExtraction && lastUserMessage) {
           runMemoryExtraction(
             character.folderPath,
             lastUserMessage.content,
-            fullContent,
+            response.content,
             lastUserMessage.id
           );
         }
@@ -108,7 +124,7 @@ export function useLlm() {
         setStreamingContent('');
       }
     },
-    [llmService, presetService, dialogueService, settings]
+    [llmService, presetService, dialogueService, settings, isConfigured]
   );
 
   /**
@@ -123,15 +139,8 @@ export function useLlm() {
       messageId: string
     ) => {
       try {
-        // Get extraction model config (fallback to main if not configured)
-        const extractionConfig = settings.extractionModel || settings.llm;
-        const effectiveConfig = {
-          baseUrl: extractionConfig.baseUrl || settings.llm.baseUrl,
-          apiKey: extractionConfig.apiKey || settings.llm.apiKey,
-          modelName: extractionConfig.modelName || 'gpt-4o-mini',
-        };
-
-        const extractionService = new MemoryExtractionService(effectiveConfig);
+        // Use new multi-provider system through MemoryExtractionService
+        const extractionService = new MemoryExtractionService(settings);
         const memories = await extractionService.extractMemories(
           userMessage,
           aiMessage,
@@ -159,5 +168,6 @@ export function useLlm() {
     streamingContent,
     generateResponse,
     clearError: () => setError(null),
+    isConfigured,
   };
 }

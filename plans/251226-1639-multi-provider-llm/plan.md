@@ -35,8 +35,8 @@ Refactor LLM system từ single provider sang multi-provider với:
 | [Phase 1](./phase-01-provider-types.md) | Type definitions & provider presets | Done | 1h | 2025-12-26 |
 | [Phase 2](./phase-02-settings-migration.md) | Settings migration & storage | Done | 1.5h | 2025-12-26 |
 | [Phase 3](./phase-03-model-fetcher.md) | Model fetcher service | Done | 1.5h | 2025-12-26 |
-| [Phase 4](./phase-04-settings-ui.md) | Settings tab UI refactor | Pending | 2h | - |
-| [Phase 5](./phase-05-llm-service-refactor.md) | LLM service refactor | Pending | 1.5h | - |
+| [Phase 4](./phase-04-settings-ui.md) | Settings tab UI refactor | Done | 2h | 2025-12-26 |
+| [Phase 5](./phase-05-llm-service-refactor.md) | LLM service refactor | Done | 1.5h | 2025-12-26 |
 | [Phase 6](./phase-06-token-tracking.md) | Token tracking per message | Pending | 0.5h | - |
 
 ## Architecture
@@ -129,3 +129,32 @@ DialogueMessage (per-turn)
 - Enhanced preset detection with PROVIDER_PRESETS integration
 - Added `isNewFormat()` type guard for cleaner migration detection
 - Better error handling for edge cases (empty data, missing fields)
+
+**Phase 4 (Completed 2025-12-26)**
+- ✅ Created `src/components/provider-modal.ts` for add/edit providers
+- ✅ Refactored `src/settings-tab.ts` with provider list and default model selection
+- ✅ Added CSS styles for provider UI in `styles.css`
+- ✅ Build and typecheck passed (0 errors)
+- ✅ Code review passed - [Report](../reports/code-reviewer-251226-2035-phase-4-settings-ui.md)
+
+**Implementation improvements over spec:**
+- Delete confirmation dialog with warning for default providers
+- Specific error messages (auth failed, endpoint not found, network error)
+- Duplicate name validation (case-insensitive)
+- URL format validation using URL constructor
+- Success notices for save/delete operations
+
+**Phase 5 (Completed 2025-12-26)**
+- ✅ Created `src/utils/provider-resolver.ts` with `resolveProvider()`, `buildAuthHeaders()`, `isMultiProviderConfigured()`
+- ✅ Refactored `src/services/llm-service.ts` to use provider resolver with legacy fallback
+- ✅ Updated `src/services/memory-extraction-service.ts` to use provider resolver
+- ✅ Updated `src/hooks/use-llm.ts` with `isConfigured()` and `LLMResponse` support
+- ✅ Build and typecheck passed (0 errors)
+- ✅ Tests passed (31/31)
+- ✅ Code review passed (Grade A - 9/10) - [Report](../reports/code-reviewer-251226-2145-phase-5-llm-service.md)
+
+**Implementation improvements over spec:**
+- Added `LLMResponse` type with token usage tracking (promptTokens, completionTokens, totalTokens)
+- Backward compatibility with legacy `settings.llm` via `isMultiProviderConfigured()` check
+- Extraction provider properly falls back to text provider when not configured
+- Stream parsing captures usage from final chunk (OpenAI `stream_options: { include_usage: true }`)

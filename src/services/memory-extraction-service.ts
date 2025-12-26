@@ -5,9 +5,14 @@
  * Runs asynchronously after each LLM response to avoid blocking UI.
  */
 
-import type { LLMProviderConfig } from '../types';
+import type { MianixSettings } from '../types';
 import type { MemoryEntry } from '../utils/bm25';
 import { extractKeywords } from '../utils/bm25';
+import {
+  resolveProvider,
+  buildAuthHeaders,
+  isMultiProviderConfigured,
+} from '../utils/provider-resolver';
 
 /** Extraction prompt for the LLM */
 const EXTRACTION_PROMPT = `Phân tích đoạn hội thoại sau và trích xuất các thông tin quan trọng cần ghi nhớ.
@@ -36,7 +41,7 @@ interface ExtractedMemory {
 }
 
 export class MemoryExtractionService {
-  constructor(private config: LLMProviderConfig) {}
+  constructor(private settings: MianixSettings) {}
 
   /**
    * Extract memories from a conversation turn
@@ -76,16 +81,20 @@ export class MemoryExtractionService {
 
   /**
    * Call the extraction LLM
+   * Uses extraction provider if configured, falls back to text provider
    */
   private async callLLM(prompt: string): Promise<string> {
-    const response = await fetch(`${this.config.baseUrl}/chat/completions`, {
+    // Get extraction config using new multi-provider system
+    const { baseUrl, model } = this.getExtractionConfig();
+
+    const response = await fetch(`${baseUrl}/chat/completions`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${this.config.apiKey}`,
+        ...this.getAuthHeaders(),
       },
       body: JSON.stringify({
-        model: this.config.modelName,
+        model,
         messages: [{ role: 'user', content: prompt }],
         temperature: 0.1, // Low temperature for consistent output
         stream: false,
@@ -98,6 +107,64 @@ export class MemoryExtractionService {
 
     const data = await response.json();
     return data.choices[0]?.message?.content || '[]';
+  }
+
+  /**
+   * Get extraction model configuration
+   * Resolution: extraction provider → text provider → legacy settings
+   */
+  private getExtractionConfig(): { baseUrl: string; apiKey: string; model: string } {
+    // Try new multi-provider system
+    if (isMultiProviderConfigured(this.settings)) {
+      // Try extraction provider first
+      const extractionResolved = resolveProvider(this.settings, 'extraction');
+      if (extractionResolved) {
+        return {
+          baseUrl: extractionResolved.provider.baseUrl,
+          apiKey: extractionResolved.provider.apiKey,
+          model: extractionResolved.model,
+        };
+      }
+    }
+
+    // Fallback to legacy settings
+    const extractionConfig = this.settings.extractionModel;
+    const mainConfig = this.settings.llm;
+
+    return {
+      baseUrl: extractionConfig?.baseUrl || mainConfig.baseUrl,
+      apiKey: extractionConfig?.apiKey || mainConfig.apiKey,
+      model: extractionConfig?.modelName || 'gpt-4o-mini',
+    };
+  }
+
+  /**
+   * Get auth headers for the extraction provider (without Content-Type)
+   */
+  private getAuthHeaders(): Record<string, string> {
+    // Try new multi-provider system
+    if (isMultiProviderConfigured(this.settings)) {
+      const resolved = resolveProvider(this.settings, 'extraction');
+      if (resolved) {
+        // Build auth-only headers based on provider type
+        const authHeader = resolved.provider.authHeader || 'bearer';
+        switch (authHeader) {
+          case 'x-goog-api-key':
+            return { 'x-goog-api-key': resolved.provider.apiKey };
+          case 'x-api-key':
+            return { 'x-api-key': resolved.provider.apiKey };
+          case 'api-key':
+            return { 'api-key': resolved.provider.apiKey };
+          default:
+            return { Authorization: `Bearer ${resolved.provider.apiKey}` };
+        }
+      }
+    }
+
+    // Fallback: legacy Bearer auth
+    const apiKey =
+      this.settings.extractionModel?.apiKey || this.settings.llm.apiKey;
+    return { Authorization: `Bearer ${apiKey}` };
   }
 
   /**
