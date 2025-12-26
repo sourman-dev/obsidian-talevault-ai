@@ -1,24 +1,61 @@
 import type { App } from 'obsidian';
 
-/** LLM provider configuration */
+// Re-export provider types for convenience
+export type {
+  ModelType,
+  AuthHeaderType,
+  LLMProvider,
+  ModelReference,
+  ProviderPreset,
+} from './provider';
+
+/**
+ * Legacy LLM provider configuration
+ * @deprecated Use LLMProvider instead - kept for migration
+ */
 export interface LLMProviderConfig {
   baseUrl: string;
   apiKey: string;
   modelName: string;
 }
 
-/** Plugin settings stored in data.json */
+// Import new types
+import type { LLMProvider, ModelReference } from './provider';
+
+/**
+ * Plugin settings stored in data.json
+ * Supports both legacy and new multi-provider format
+ */
 export interface MianixSettings {
-  /** Main LLM for roleplay (can be expensive/slow thinking model) */
-  llm: LLMProviderConfig;
-  /** Extraction model for memory extraction (should be fast/cheap) */
-  extractionModel?: LLMProviderConfig;
+  // === New multi-provider system ===
+  /** Configured LLM providers */
+  providers?: LLMProvider[];
+  /** Default model selections by type */
+  defaults?: {
+    text: ModelReference;
+    extraction?: ModelReference;
+    image?: ModelReference;
+  };
+
+  // === Feature toggles ===
   /** Enable memory extraction after each response */
   enableMemoryExtraction: boolean;
+
+  // === Legacy fields (kept for backward compatibility until Phase 2 migration) ===
+  /** Main LLM config - will be migrated to providers[] in Phase 2 */
+  llm: LLMProviderConfig;
+  /** Extraction model config - will be migrated to defaults.extraction in Phase 2 */
+  extractionModel?: LLMProviderConfig;
 }
 
 /** Default settings */
 export const DEFAULT_SETTINGS: MianixSettings = {
+  // New fields (optional until migration)
+  providers: [],
+  defaults: {
+    text: { providerId: '', model: '' },
+  },
+  // Legacy fields (required for existing code)
   llm: {
     baseUrl: 'https://api.openai.com/v1',
     apiKey: '',
@@ -26,10 +63,10 @@ export const DEFAULT_SETTINGS: MianixSettings = {
   },
   extractionModel: {
     baseUrl: 'https://api.openai.com/v1',
-    apiKey: '', // Will use main API key if empty
+    apiKey: '',
     modelName: 'gpt-4o-mini',
   },
-  enableMemoryExtraction: false, // Disabled by default until configured
+  enableMemoryExtraction: false,
 };
 
 /** Character card frontmatter */
