@@ -1322,6 +1322,97 @@
   margin-top: 4px;
 }
 
+/* ===== Provider Settings ===== */
+.mianix-provider-list {
+  margin-bottom: 1rem;
+}
+
+.mianix-provider-empty {
+  padding: 12px;
+  color: var(--text-muted);
+  font-size: 13px;
+  text-align: center;
+  border: 1px dashed var(--background-modifier-border);
+  border-radius: 6px;
+}
+
+.mianix-provider-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 6px;
+  margin-bottom: 8px;
+  background: var(--background-secondary);
+}
+
+.mianix-provider-item:hover {
+  border-color: var(--interactive-accent);
+}
+
+.mianix-provider-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.mianix-provider-name {
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.mianix-provider-badge {
+  font-size: 10px;
+  padding: 2px 6px;
+  background: var(--interactive-accent);
+  color: var(--text-on-accent);
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.mianix-provider-model {
+  font-size: 12px;
+  color: var(--text-muted);
+  max-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mianix-provider-actions {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.mianix-provider-actions .clickable-icon {
+  padding: 4px;
+  border-radius: 4px;
+}
+
+.mianix-provider-actions .clickable-icon:hover {
+  background: var(--background-modifier-hover);
+}
+
+/* Provider Modal */
+.mianix-provider-modal {
+  padding: 16px;
+}
+
+.mianix-provider-modal h2 {
+  margin: 0 0 16px 0;
+  font-size: 18px;
+}
+
+.mianix-provider-modal .setting-item {
+  border-top: none;
+  padding-top: 8px;
+}
+
 /* Touch-friendly tap targets */
 @media (hover: none) {
   .mianix-action-btn {
