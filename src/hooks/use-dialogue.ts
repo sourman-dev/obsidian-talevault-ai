@@ -74,11 +74,14 @@ export function useDialogue(character: CharacterCardWithPath | null) {
   }, [character, service, setMessages, setLoading]);
 
   // Send user message
+  // Uses store.getState() to get latest messages (avoids stale closure)
   const sendMessage = useCallback(
     async (content: string) => {
       if (!characterFolderPath || !content.trim()) return null;
 
-      const parentId = messages.length > 0 ? messages[messages.length - 1].id : null;
+      // Get latest messages from store to avoid stale closure
+      const currentMessages = useRoleplayStore.getState().messages;
+      const parentId = currentMessages.length > 0 ? currentMessages[currentMessages.length - 1].id : null;
 
       try {
         const userMsg = await service.appendMessage(
@@ -94,7 +97,7 @@ export function useDialogue(character: CharacterCardWithPath | null) {
         return null;
       }
     },
-    [characterFolderPath, messages, service, addMessage]
+    [characterFolderPath, service, addMessage]
   );
 
   // Add assistant message (for LLM response)
@@ -128,27 +131,31 @@ export function useDialogue(character: CharacterCardWithPath | null) {
   );
 
   // Update message content (for editing)
+  // Uses store.getState() to avoid stale closure
   const editMessage = useCallback(
     async (filePath: string, content: string) => {
       try {
         await service.updateMessageContent(filePath, content);
+        const currentMessages = useRoleplayStore.getState().messages;
         setMessages(
-          messages.map((m) => (m.filePath === filePath ? { ...m, content } : m))
+          currentMessages.map((m) => (m.filePath === filePath ? { ...m, content } : m))
         );
       } catch (e) {
         setError(e instanceof Error ? e.message : 'Failed to edit message');
       }
     },
-    [service, messages, setMessages]
+    [service, setMessages]
   );
 
   // Save suggestions to message file
+  // Uses store.getState() to avoid stale closure
   const saveSuggestions = useCallback(
     async (filePath: string, suggestions: string[]) => {
       try {
         await service.updateMessageSuggestions(filePath, suggestions);
+        const currentMessages = useRoleplayStore.getState().messages;
         setMessages(
-          messages.map((m) =>
+          currentMessages.map((m) =>
             m.filePath === filePath ? { ...m, suggestions } : m
           )
         );
@@ -156,27 +163,31 @@ export function useDialogue(character: CharacterCardWithPath | null) {
         console.error('Failed to save suggestions:', e);
       }
     },
-    [service, messages, setMessages]
+    [service, setMessages]
   );
 
   // Delete a single message
+  // Uses store.getState() to avoid stale closure
   const deleteMessage = useCallback(
     async (filePath: string) => {
       try {
         await service.deleteMessage(filePath);
-        setMessages(messages.filter((m) => m.filePath !== filePath));
+        const currentMessages = useRoleplayStore.getState().messages;
+        setMessages(currentMessages.filter((m) => m.filePath !== filePath));
       } catch (e) {
         setError(e instanceof Error ? e.message : 'Failed to delete message');
       }
     },
-    [service, messages, setMessages]
+    [service, setMessages]
   );
 
   // Delete message and all after (for regenerate)
   // Returns messages that were kept (to use for LLM context)
   const deleteMessagesFrom = useCallback(
     async (filePath: string): Promise<DialogueMessageWithContent[]> => {
-      if (!characterFolderPath) return messages;
+      if (!characterFolderPath) {
+        return useRoleplayStore.getState().messages;
+      }
 
       try {
         const remaining = await service.deleteMessagesFrom(characterFolderPath, filePath);
@@ -184,10 +195,10 @@ export function useDialogue(character: CharacterCardWithPath | null) {
         return remaining;
       } catch (e) {
         setError(e instanceof Error ? e.message : 'Failed to delete messages');
-        return messages;
+        return useRoleplayStore.getState().messages;
       }
     },
-    [characterFolderPath, service, messages, setMessages]
+    [characterFolderPath, service, setMessages]
   );
 
   // Update LLM options for this session

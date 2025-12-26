@@ -74,14 +74,26 @@ export function ChatView({ character }: ChatViewProps) {
     return items.slice(0, 3);
   }, []);
 
-  // Get suggestions from the last assistant message
-  const lastAssistantWithSuggestions = useMemo(() => {
+  // Get suggestions from the LAST assistant message (even if empty - fallback to previous)
+  const latestSuggestions = useMemo((): string[] => {
     for (let i = messages.length - 1; i >= 0; i--) {
-      if (messages[i].role === 'assistant' && messages[i].suggestions?.length) {
-        return messages[i];
+      if (messages[i].role === 'assistant') {
+        // Return suggestions if exists, otherwise continue searching
+        const suggestions = messages[i].suggestions;
+        if (suggestions && suggestions.length > 0) {
+          return suggestions;
+        }
       }
     }
-    return null;
+    return [];
+  }, [messages]);
+
+  // Find last user message for button layout
+  const lastUserIndex = useMemo(() => {
+    for (let i = messages.length - 1; i >= 0; i--) {
+      if (messages[i].role === 'user') return i;
+    }
+    return -1;
   }, [messages]);
 
   const handleSend = async (content: string) => {
@@ -217,76 +229,96 @@ export function ChatView({ character }: ChatViewProps) {
           </div>
         )}
 
-        {messages.map((msg, index) => (
-          <div
-            key={msg.id}
-            className={`mianix-message ${msg.role}`}
-          >
-            {msg.role === 'assistant' && (
-              <div className="mianix-message-avatar">
-                {character?.avatarUrl ? (
-                  <img src={character.avatarUrl} alt={character.name} />
-                ) : (
-                  <span className="mianix-avatar-placeholder">
-                    {character?.name?.[0] || 'A'}
-                  </span>
-                )}
-              </div>
-            )}
-            <div className="mianix-message-content">
-              {msg.role === 'assistant' && (
-                <div className="mianix-message-name">{character?.name}</div>
-              )}
+        {messages.map((msg, index) => {
+          const isLatestUser = msg.role === 'user' && index === lastUserIndex;
+          const isFirstMessage = index === 0 && msg.role === 'assistant';
 
-              {msg.role === 'user' ? (
-                // User message: show content directly
-                <div className="mianix-message-text">{msg.content}</div>
-              ) : (
-                // Assistant message: show as clickable link
-                <div className="mianix-message-link-container">
-                  <button
-                    className="mianix-message-link"
-                    onClick={() => openMessageFile(msg.filePath)}
-                    title="Click to open in editor"
-                  >
-                    📄 {msg.content.slice(0, 80)}
-                    {msg.content.length > 80 ? '...' : ''}
-                  </button>
+          return (
+            <div
+              key={msg.id}
+              className={`mianix-message ${msg.role}`}
+            >
+              {msg.role === 'assistant' && (
+                <div className="mianix-message-avatar">
+                  {character?.avatarUrl ? (
+                    <img src={character.avatarUrl} alt={character.name} />
+                  ) : (
+                    <span className="mianix-avatar-placeholder">
+                      {character?.name?.[0] || 'A'}
+                    </span>
+                  )}
                 </div>
               )}
+              <div className="mianix-message-content">
+                {msg.role === 'assistant' && (
+                  <div className="mianix-message-name">{character?.name}</div>
+                )}
 
-              <div className="mianix-message-footer">
-                <span className="mianix-message-time">
-                  {new Date(msg.timestamp).toLocaleTimeString([], {
-                    hour: '2-digit',
-                    minute: '2-digit',
-                  })}
-                </span>
-
-                <div className="mianix-message-actions">
-                  {msg.role === 'assistant' && (
+                {msg.role === 'user' ? (
+                  // User message: show content directly
+                  <div className="mianix-message-text">{msg.content}</div>
+                ) : (
+                  // Assistant message: truncated preview (40 chars for mobile)
+                  <div className="mianix-message-link-container">
                     <button
-                      onClick={() => handleRegenerate(msg)}
-                      title="Regenerate"
-                      className="mianix-action-btn"
-                      disabled={isBusy}
+                      className="mianix-message-link"
+                      onClick={() => openMessageFile(msg.filePath)}
+                      title="Click to open in editor"
                     >
-                      🔄
+                      📄 {msg.content.slice(0, 40)}
+                      {msg.content.length > 40 ? '...' : ''}
                     </button>
-                  )}
-                  <button
-                    onClick={() => handleDeleteMessage(msg.filePath)}
-                    title="Delete"
-                    className="mianix-action-btn mianix-action-danger"
-                    disabled={isBusy}
-                  >
-                    🗑️
-                  </button>
+                  </div>
+                )}
+
+                <div className="mianix-message-footer">
+                  <span className="mianix-message-time">
+                    {new Date(msg.timestamp).toLocaleTimeString([], {
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    })}
+                  </span>
+
+                  <div className="mianix-message-actions">
+                    {/* Latest user message: [regenerate, delete] */}
+                    {isLatestUser && (
+                      <>
+                        <button
+                          onClick={() => handleRegenerate(msg)}
+                          title="Regenerate response"
+                          className="mianix-action-btn"
+                          disabled={isBusy}
+                        >
+                          🔄
+                        </button>
+                        <button
+                          onClick={() => handleDeleteMessage(msg.filePath)}
+                          title="Delete"
+                          className="mianix-action-btn mianix-action-danger"
+                          disabled={isBusy}
+                        >
+                          🗑️
+                        </button>
+                      </>
+                    )}
+
+                    {/* Assistant messages: only delete (except first message) */}
+                    {msg.role === 'assistant' && !isFirstMessage && (
+                      <button
+                        onClick={() => handleDeleteMessage(msg.filePath)}
+                        title="Delete"
+                        className="mianix-action-btn mianix-action-danger"
+                        disabled={isBusy}
+                      >
+                        🗑️
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
 
         {/* Waiting/Generating state */}
         {isGenerating && (
@@ -325,30 +357,29 @@ export function ChatView({ character }: ChatViewProps) {
 
       {/* Input area */}
       <div className="mianix-input-area">
-        {/* Suggestions dropdown */}
-        {lastAssistantWithSuggestions?.suggestions &&
-          lastAssistantWithSuggestions.suggestions.length > 0 && (
-            <div className="mianix-suggestions-dropdown">
-              <label htmlFor="suggestion-select">Gợi ý:</label>
-              <select
-                id="suggestion-select"
-                onChange={(e) => {
-                  if (e.target.value) {
-                    handleSuggestionSelect(e.target.value);
-                    e.target.value = ''; // Reset select
-                  }
-                }}
-                disabled={isBusy}
-              >
-                <option value="">-- Chọn gợi ý --</option>
-                {lastAssistantWithSuggestions.suggestions.map((s, i) => (
-                  <option key={i} value={s}>
-                    {s.length > 60 ? s.slice(0, 57) + '...' : s}
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
+        {/* Suggestions dropdown - from latest assistant message with suggestions */}
+        {latestSuggestions.length > 0 && (
+          <div className="mianix-suggestions-dropdown">
+            <label htmlFor="suggestion-select">Gợi ý:</label>
+            <select
+              id="suggestion-select"
+              onChange={(e) => {
+                if (e.target.value) {
+                  handleSuggestionSelect(e.target.value);
+                  e.target.value = ''; // Reset select
+                }
+              }}
+              disabled={isBusy}
+            >
+              <option value="">-- Chọn gợi ý --</option>
+              {latestSuggestions.map((s, i) => (
+                <option key={i} value={s}>
+                  {s.length > 60 ? s.slice(0, 57) + '...' : s}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
 
         <MessageInput
           onSend={handleSend}
