@@ -39,7 +39,17 @@ export default class MianixRoleplayPlugin extends Plugin {
         callback: () => this.activateView(),
       });
 
-      console.log('Mianix Roleplay plugin loaded');
+      // Add command to regenerate latest turn
+      this.addCommand({
+        id: 'regenerate-latest-turn',
+        name: 'Regenerate latest turn',
+        callback: () => {
+          // Dispatch custom event that ChatView listens to
+          window.dispatchEvent(new CustomEvent('talevault:regenerate-latest'));
+        },
+      });
+
+      console.log('TaleVault AI plugin loaded');
     } catch (error) {
       console.error('Mianix Roleplay plugin failed to load:', error);
     }

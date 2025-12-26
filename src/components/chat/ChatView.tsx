@@ -74,6 +74,62 @@ export function ChatView({ character }: ChatViewProps) {
     return items.slice(0, 3);
   }, []);
 
+  // Regenerate latest turn - triggered by command palette or button
+  const regenerateLatestTurn = useCallback(async () => {
+    if (!character || !characterFolderPath || isGenerating || isLoading) return;
+
+    // Get fresh messages from store to avoid stale closure
+    const currentMessages = [...messages];
+    const latestUserMsg = currentMessages.reverse().find((m) => m.role === 'user');
+    if (!latestUserMsg) return;
+
+    // Delete from user message onwards (including its response)
+    const remaining = await deleteMessagesFrom(latestUserMsg.filePath);
+
+    // Reload user message content from file (in case user edited it)
+    const userFile = app.vault.getAbstractFileByPath(latestUserMsg.filePath);
+    if (!userFile) return;
+
+    // Re-read the message to get potentially edited content
+    const reloadedMessages = remaining;
+
+    await generateResponse(
+      character,
+      reloadedMessages,
+      async (responseContent, llmResponse?: LLMResponse) => {
+        const tokenUsage: MessageTokenUsage | undefined = llmResponse
+          ? {
+              providerId: llmResponse.providerId,
+              model: llmResponse.model,
+              inputTokens: llmResponse.usage?.promptTokens,
+              outputTokens: llmResponse.usage?.completionTokens,
+            }
+          : undefined;
+
+        const assistantMsg = await addAssistantMessage(responseContent, tokenUsage);
+        if (assistantMsg) {
+          const prompts = parseSuggestedPrompts(responseContent);
+          if (prompts.length > 0) {
+            await saveSuggestions(assistantMsg.filePath, prompts);
+          }
+        }
+      },
+      llmOptions
+    );
+  }, [character, characterFolderPath, messages, isGenerating, isLoading, app.vault, deleteMessagesFrom, generateResponse, addAssistantMessage, parseSuggestedPrompts, saveSuggestions, llmOptions]);
+
+  // Listen for regenerate command from command palette
+  useEffect(() => {
+    const handleRegenerateCommand = () => {
+      regenerateLatestTurn();
+    };
+
+    window.addEventListener('talevault:regenerate-latest', handleRegenerateCommand);
+    return () => {
+      window.removeEventListener('talevault:regenerate-latest', handleRegenerateCommand);
+    };
+  }, [regenerateLatestTurn]);
+
   // Get suggestions from the LAST assistant message (even if empty - fallback to previous)
   const latestSuggestions = useMemo((): string[] => {
     for (let i = messages.length - 1; i >= 0; i--) {
