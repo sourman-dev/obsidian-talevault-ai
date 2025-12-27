@@ -13,6 +13,7 @@ export const PRESET_FILES = {
   CHAIN_OF_THOUGHT: 'chain-of-thought-prompt.md',
   OUTPUT_STRUCTURE: 'output-structure-prompt.md',
   OUTPUT_FORMAT: 'output-format-prompt.md',
+  DIRECTOR: 'director-prompt.md',
 } as const;
 
 export type PresetFileName = (typeof PRESET_FILES)[keyof typeof PRESET_FILES];

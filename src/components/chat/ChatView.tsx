@@ -4,10 +4,11 @@ import { MessageInput } from './MessageInput';
 import { LLMOptionsPanel } from './LLMOptionsPanel';
 import { LorebookIndicator } from './LorebookIndicator';
 import { StatsPanel } from './StatsPanel';
+import { POVModeSelector, DEFAULT_POV_OPTIONS } from './POVModeSelector';
 import { useDialogue } from '../../hooks/use-dialogue';
 import { useLlm } from '../../hooks/use-llm';
 import type { LLMResponse } from '../../services/llm-service';
-import type { CharacterCardWithPath, DialogueMessageWithContent, MessageTokenUsage } from '../../types';
+import type { CharacterCardWithPath, DialogueMessageWithContent, MessageTokenUsage, POVOptions } from '../../types';
 import type { CharacterStats } from '../../types/stats';
 
 interface ChatViewProps {
@@ -45,6 +46,7 @@ export function ChatView({ character }: ChatViewProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [inputValue, setInputValue] = useState('');
   const [characterStats, setCharacterStats] = useState<CharacterStats | null>(null);
+  const [povOptions, setPovOptions] = useState<POVOptions>(DEFAULT_POV_OPTIONS);
 
   // Auto-scroll to bottom
   useEffect(() => {
@@ -137,9 +139,10 @@ export function ChatView({ character }: ChatViewProps) {
           }
         }
       },
-      llmOptions
+      llmOptions,
+      povOptions
     );
-  }, [character, characterFolderPath, messages, isGenerating, isLoading, reloadMessageContent, deleteMessage, generateResponse, addAssistantMessage, parseSuggestedPrompts, saveSuggestions, llmOptions]);
+  }, [character, characterFolderPath, messages, isGenerating, isLoading, reloadMessageContent, deleteMessage, generateResponse, addAssistantMessage, parseSuggestedPrompts, saveSuggestions, llmOptions, povOptions]);
 
   // Listen for regenerate command from command palette
   useEffect(() => {
@@ -205,7 +208,8 @@ export function ChatView({ character }: ChatViewProps) {
           }
         }
       },
-      llmOptions
+      llmOptions,
+      povOptions
     );
   };
 
@@ -282,7 +286,8 @@ export function ChatView({ character }: ChatViewProps) {
           }
         }
       },
-      llmOptions
+      llmOptions,
+      povOptions
     );
   };
 
@@ -321,6 +326,11 @@ export function ChatView({ character }: ChatViewProps) {
             <LorebookIndicator
               characterFolderPath={characterFolderPath}
               recentMessages={messages.map(m => m.content)}
+            />
+            <POVModeSelector
+              povOptions={povOptions}
+              onChange={setPovOptions}
+              disabled={isBusy}
             />
             <LLMOptionsPanel
               options={llmOptions}

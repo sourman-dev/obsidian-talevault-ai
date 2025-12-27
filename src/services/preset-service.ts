@@ -104,6 +104,13 @@ export class PresetService {
   }
 
   /**
+   * Load Director prompt for POV system.
+   */
+  async loadDirectorPrompt(): Promise<string> {
+    return this.loadPreset(PRESET_FILES.DIRECTOR);
+  }
+
+  /**
    * Load all presets needed for LLM.
    */
   async loadAllPresets(): Promise<{
@@ -111,17 +118,20 @@ export class PresetService {
     chainOfThoughtPrompt: string;
     outputStructurePrompt: string;
     outputFormatPrompt: string;
+    directorPrompt?: string;
   }> {
     const [
       multiModePrompt,
       chainOfThoughtPrompt,
       outputStructurePrompt,
       outputFormatPrompt,
+      directorPrompt,
     ] = await Promise.all([
       this.loadMultiModePrompt(),
       this.loadChainOfThoughtPrompt(),
       this.loadOutputStructurePrompt(),
       this.loadOutputFormatPrompt(),
+      this.loadDirectorPrompt(),
     ]);
 
     return {
@@ -129,6 +139,7 @@ export class PresetService {
       chainOfThoughtPrompt,
       outputStructurePrompt,
       outputFormatPrompt,
+      directorPrompt,
     };
   }
 

@@ -6,12 +6,15 @@ import { DialogueService } from '../services/dialogue-service';
 import { MemoryExtractionService } from '../services/memory-extraction-service';
 import { LorebookService } from '../services/lorebook-service';
 import { StatsService } from '../services/stats-service';
+import { DirectorService } from '../services/director-service';
+import { ContextFilterService } from '../services/context-filter-service';
 import { isMultiProviderConfigured } from '../utils/provider-resolver';
 import { DEFAULT_LLM_OPTIONS } from '../presets';
 import type {
   CharacterCardWithPath,
   DialogueMessageWithContent,
   LLMOptions,
+  POVOptions,
 } from '../types';
 
 /** Number of recent messages to include in context */
@@ -31,6 +34,8 @@ export function useLlm() {
   const dialogueService = useMemo(() => new DialogueService(app), [app]);
   const lorebookService = useMemo(() => new LorebookService(app), [app]);
   const statsService = useMemo(() => new StatsService(app), [app]);
+  const directorService = useMemo(() => new DirectorService(settings), [settings]);
+  const contextFilterService = useMemo(() => new ContextFilterService(), []);
 
   /**
    * Check if LLM is properly configured
@@ -47,13 +52,18 @@ export function useLlm() {
   /**
    * Generate response with streaming
    * Uses BM25 to retrieve relevant memories from past conversations
+   *
+   * If POV mode is enabled, uses 2-call flow:
+   * 1. Director: Generate scene instructions (action-only)
+   * 2. Narrator: Generate response with POV filtering
    */
   const generateResponse = useCallback(
     async (
       character: CharacterCardWithPath,
       messages: DialogueMessageWithContent[],
       onComplete: (content: string, response?: LLMResponse) => Promise<void>,
-      llmOptions: LLMOptions = DEFAULT_LLM_OPTIONS
+      llmOptions: LLMOptions = DEFAULT_LLM_OPTIONS,
+      povOptions?: POVOptions
     ) => {
       if (!isConfigured()) {
         setError('No LLM provider configured. Go to Settings > TaleVault AI.');
@@ -106,8 +116,38 @@ export function useLlm() {
         // Use only recent messages (not all history)
         const recentMessages = messages.slice(-RECENT_MESSAGES_COUNT);
 
-        // TODO: Pass character-level model overrides when implemented
-        // Currently using global defaults only
+        // Director-Narrator 2-call flow (if POV enabled)
+        let directorContext: { instructions: string; povRules: string } | undefined;
+
+        if (povOptions?.mode) {
+          try {
+            // Call #1: Director generates scene instructions
+            const directorOutput = await directorService.generateSceneInstructions(
+              character,
+              recentMessages,
+              presets,
+              context
+            );
+
+            // Filter Director output based on POV mode
+            const filtered = contextFilterService.filterForPOV(
+              directorOutput.instructions,
+              povOptions.mode,
+              povOptions.povCharacterId,
+              character
+            );
+
+            directorContext = {
+              instructions: filtered.filteredContext,
+              povRules: filtered.povRules,
+            };
+          } catch (directorError) {
+            console.error('Director call failed, falling back to single-call:', directorError);
+            // Continue without Director context if it fails
+          }
+        }
+
+        // Call #2 (or single call): Narrator generates response
         const response = await llmService.chatStream(
           character,
           recentMessages,
@@ -118,8 +158,9 @@ export function useLlm() {
           },
           presets,
           llmOptions,
-          context
-          // session.modelConfig // Future: character-level override
+          context,
+          undefined, // characterOverride
+          directorContext
         );
 
         // IMPORTANT: Set isGenerating false BEFORE onComplete
@@ -145,7 +186,7 @@ export function useLlm() {
         setStreamingContent('');
       }
     },
-    [llmService, presetService, dialogueService, lorebookService, statsService, settings, isConfigured]
+    [llmService, presetService, dialogueService, lorebookService, statsService, directorService, contextFilterService, settings, isConfigured]
   );
 
   /**

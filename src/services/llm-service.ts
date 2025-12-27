@@ -8,6 +8,7 @@ import type {
   CharacterCardWithPath,
   DialogueMessageWithContent,
   LLMOptions,
+  POVOptions,
 } from '../types';
 import {
   resolveProvider,
@@ -30,6 +31,8 @@ export interface LoadedPresets {
   chainOfThoughtPrompt: string;
   outputStructurePrompt: string;
   outputFormatPrompt: string;
+  /** Director prompt for POV system (optional) */
+  directorPrompt?: string;
 }
 
 /** Context for LLM including memories, lorebook, and stats */
@@ -103,22 +106,40 @@ export class LlmService {
    *
    * Structure (aligned with mianix-userscript):
    * 1. Multi-mode roleplay prompt (persona system)
-   * 2. Long-term memories (BM25 search results)
-   * 3. Lorebook entries (world info)
-   * 4. Character stats (RPG stats)
-   * 5. Character information (description, personality, scenario)
+   * 2. Director scene instructions (if POV enabled)
+   * 3. POV rules (if POV enabled)
+   * 4. Long-term memories (BM25 search results)
+   * 5. Lorebook entries (world info)
+   * 6. Character stats (RPG stats)
+   * 7. Character information (description, personality, scenario)
+   *
+   * @param directorContext - Optional Director output with filtered context and POV rules
    */
   buildSystemPrompt(
     character: CharacterCardWithPath,
     presets: LoadedPresets,
-    context?: LLMContext
+    context?: LLMContext,
+    directorContext?: { instructions: string; povRules: string }
   ): string {
     const parts: string[] = [];
 
     // 1. Multi-mode roleplay prompt (persona system)
     parts.push(presets.multiModePrompt);
 
-    // 2. Long-term memories (from BM25 search)
+    // 2. Director scene instructions (if POV enabled)
+    if (directorContext?.instructions) {
+      parts.push('\n\n---\n## Scene Direction\n');
+      parts.push('**What is happening in this scene:**\n');
+      parts.push(directorContext.instructions);
+    }
+
+    // 3. POV rules (if POV enabled)
+    if (directorContext?.povRules) {
+      parts.push('\n\n---');
+      parts.push(directorContext.povRules);
+    }
+
+    // 4. Long-term memories (from BM25 search)
     if (context?.relevantMemories) {
       parts.push('\n\n---\n## Long-term Memory\n');
       parts.push('**Thông tin quan trọng từ các cuộc trò chuyện trước:**\n');
@@ -217,22 +238,25 @@ export class LlmService {
    * Build messages array for API call (2-message format)
    *
    * Format: [system, user]
-   * - system: persona + memories + lorebook + stats + character info
+   * - system: persona + director + POV rules + memories + lorebook + stats + character info
    * - user: CoT + output structure + chat history + user input + output format
    *
    * This format aligns with mianix-userscript for better LLM instruction following.
+   *
+   * @param directorContext - Optional Director output with filtered context and POV rules
    */
   buildMessages(
     character: CharacterCardWithPath,
     dialogueMessages: DialogueMessageWithContent[],
     presets: LoadedPresets,
     llmOptions: LLMOptions = DEFAULT_LLM_OPTIONS,
-    context?: LLMContext
+    context?: LLMContext,
+    directorContext?: { instructions: string; povRules: string }
   ): ChatMessage[] {
     return [
       {
         role: 'system',
-        content: this.buildSystemPrompt(character, presets, context),
+        content: this.buildSystemPrompt(character, presets, context, directorContext),
       },
       {
         role: 'user',
@@ -299,6 +323,8 @@ export class LlmService {
   /**
    * Send chat completion request with streaming
    * Note: Token counts may not be available in streaming mode for all providers
+   *
+   * @param directorContext - Optional Director output with filtered context and POV rules
    */
   async chatStream(
     character: CharacterCardWithPath,
@@ -307,7 +333,8 @@ export class LlmService {
     presets: LoadedPresets,
     llmOptions: LLMOptions = DEFAULT_LLM_OPTIONS,
     context?: LLMContext,
-    characterOverride?: ModelOverrides
+    characterOverride?: ModelOverrides,
+    directorContext?: { instructions: string; povRules: string }
   ): Promise<LLMResponse> {
     const { provider, model, providerId } = this.getTextProvider(characterOverride);
 
@@ -316,7 +343,8 @@ export class LlmService {
       dialogueMessages,
       presets,
       llmOptions,
-      context
+      context,
+      directorContext
     );
 
     const response = await fetch(`${provider.baseUrl}/chat/completions`, {

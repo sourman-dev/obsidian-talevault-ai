@@ -109,11 +109,24 @@ export interface CharacterFormData {
   firstMessage: string;
 }
 
+/** POV (Point of View) mode for Director-Narrator system */
+export type POVMode = 'fixed' | 'switchable' | 'any';
+
+/** POV options for controlling narrative perspective */
+export interface POVOptions {
+  /** Current POV mode */
+  mode: POVMode;
+  /** Character ID for POV in fixed/switchable mode (defaults to main char) */
+  povCharacterId?: string;
+}
+
 /** LLM options per session */
 export interface LLMOptions {
   temperature: number;
   topP: number;
   responseLength: number; // Target word count in response (used in prompt)
+  /** POV options for Director-Narrator system */
+  povOptions?: POVOptions;
 }
 
 /** Dialogue session metadata (stored in session.json) */
@@ -122,6 +135,8 @@ export interface DialogueSession {
   characterId: string;
   createdAt: string;
   llmOptions: LLMOptions;
+  /** POV settings for this session */
+  povOptions?: POVOptions;
 }
 
 /** Token usage info for assistant messages */
