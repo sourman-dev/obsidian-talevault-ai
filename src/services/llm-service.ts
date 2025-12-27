@@ -27,6 +27,8 @@ interface ChatMessage {
 /** Presets loaded from vault */
 export interface LoadedPresets {
   multiModePrompt: string;
+  chainOfThoughtPrompt: string;
+  outputStructurePrompt: string;
   outputFormatPrompt: string;
 }
 
@@ -97,22 +99,18 @@ export class LlmService {
   }
 
   /**
-   * Build system prompt from character card + presets + memories + lorebook + stats
+   * Build system prompt (first message) - contains persona, context, and character info
    *
-   * Context injection order (affects LLM attention):
+   * Structure (aligned with mianix-userscript):
    * 1. Multi-mode roleplay prompt (persona system)
-   * 2. Lorebook entries (world info - injected before character for background)
-   * 3. Character stats (RPG stats - injected before character info)
-   * 4. Character information (name, description, personality, scenario)
-   * 5. Long-term memories (BM25 search results)
-   * 6. Output format instructions
-   *
-   * Note: Items closer to the end have stronger influence on responses.
+   * 2. Long-term memories (BM25 search results)
+   * 3. Lorebook entries (world info)
+   * 4. Character stats (RPG stats)
+   * 5. Character information (description, personality, scenario)
    */
   buildSystemPrompt(
     character: CharacterCardWithPath,
     presets: LoadedPresets,
-    llmOptions: LLMOptions = DEFAULT_LLM_OPTIONS,
     context?: LLMContext
   ): string {
     const parts: string[] = [];
@@ -120,19 +118,26 @@ export class LlmService {
     // 1. Multi-mode roleplay prompt (persona system)
     parts.push(presets.multiModePrompt);
 
-    // 2. Lorebook entries (world info, injected before character for context)
+    // 2. Long-term memories (from BM25 search)
+    if (context?.relevantMemories) {
+      parts.push('\n\n---\n## Long-term Memory\n');
+      parts.push('**Thông tin quan trọng từ các cuộc trò chuyện trước:**\n');
+      parts.push(context.relevantMemories);
+    }
+
+    // 3. Lorebook entries (world info)
     if (context?.lorebookContext) {
       parts.push('\n\n---\n## World Information\n');
       parts.push(context.lorebookContext);
     }
 
-    // 3. Character stats (RPG stats, injected before character info)
+    // 4. Character stats (RPG stats)
     if (context?.statsContext) {
       parts.push('\n\n---\n');
       parts.push(context.statsContext);
     }
 
-    // 4. Character card info
+    // 5. Character card info
     parts.push('\n\n---\n## Character Information\n');
     parts.push(`**Name:** ${character.name}`);
 
@@ -148,12 +153,54 @@ export class LlmService {
       parts.push(`\n**Scenario:** ${character.scenario}`);
     }
 
-    // 5. Long-term memories (from BM25 search)
-    if (context?.relevantMemories) {
-      parts.push('\n\n---\n## Long-term Memory\n');
-      parts.push('**Thông tin quan trọng từ các cuộc trò chuyện trước:**\n');
-      parts.push(context.relevantMemories);
+    return parts.join('');
+  }
+
+  /**
+   * Build user prompt (second message) - contains dialogue examples, CoT, chat history, and format
+   *
+   * Structure (aligned with mianix-userscript):
+   * 1. Dialogue examples (mes_example from character card)
+   * 2. Chain of Thought instructions
+   * 3. Output structure guide
+   * 4. Chat history (embedded as text, not separate messages)
+   * 5. Current user input
+   * 6. Output format with response length
+   */
+  buildUserPrompt(
+    character: CharacterCardWithPath,
+    dialogueMessages: DialogueMessageWithContent[],
+    presets: LoadedPresets,
+    llmOptions: LLMOptions = DEFAULT_LLM_OPTIONS
+  ): string {
+    const parts: string[] = [];
+
+    // 1. Dialogue examples (if available in firstMessage, could be extended)
+    // Note: For now we don't have mes_example in CharacterCard, but structure is ready
+    // parts.push('## Dialogue Examples\n');
+    // parts.push(character.mesExample || '');
+
+    // 2. Chain of Thought instructions
+    parts.push(presets.chainOfThoughtPrompt);
+
+    // 3. Output structure guide
+    parts.push('\n\n---\n');
+    parts.push(presets.outputStructurePrompt);
+
+    // 4. Chat history (embedded as formatted text block)
+    if (dialogueMessages.length > 0) {
+      parts.push('\n\n---\n## Chat History\n');
+      const historyLines = dialogueMessages.map(msg => {
+        const roleName = msg.role === 'user' ? 'User' : character.name;
+        return `**${roleName}:** ${msg.content}`;
+      });
+      parts.push(historyLines.join('\n\n'));
     }
+
+    // 5. Current user input section (the last user message is already in history)
+    // This section marks where the AI should continue
+    parts.push('\n\n---\n## Your Turn\n');
+    parts.push(`Hãy phản hồi với tư cách **${character.name}**, tiếp tục cuộc hội thoại một cách tự nhiên.`);
 
     // 6. Output format with responseLength
     const outputFormat = presets.outputFormatPrompt.replace(
@@ -167,7 +214,13 @@ export class LlmService {
   }
 
   /**
-   * Build messages array for API call
+   * Build messages array for API call (2-message format)
+   *
+   * Format: [system, user]
+   * - system: persona + memories + lorebook + stats + character info
+   * - user: CoT + output structure + chat history + user input + output format
+   *
+   * This format aligns with mianix-userscript for better LLM instruction following.
    */
   buildMessages(
     character: CharacterCardWithPath,
@@ -176,23 +229,16 @@ export class LlmService {
     llmOptions: LLMOptions = DEFAULT_LLM_OPTIONS,
     context?: LLMContext
   ): ChatMessage[] {
-    const messages: ChatMessage[] = [];
-
-    // System prompt (includes memories if provided)
-    messages.push({
-      role: 'system',
-      content: this.buildSystemPrompt(character, presets, llmOptions, context),
-    });
-
-    // Dialogue history (only recent messages, not all)
-    for (const msg of dialogueMessages) {
-      messages.push({
-        role: msg.role,
-        content: msg.content,
-      });
-    }
-
-    return messages;
+    return [
+      {
+        role: 'system',
+        content: this.buildSystemPrompt(character, presets, context),
+      },
+      {
+        role: 'user',
+        content: this.buildUserPrompt(character, dialogueMessages, presets, llmOptions),
+      },
+    ];
   }
 
   /**

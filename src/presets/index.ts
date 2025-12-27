@@ -10,6 +10,8 @@ export const DEFAULT_LLM_OPTIONS: LLMOptions = {
 /** Preset file names */
 export const PRESET_FILES = {
   MULTI_MODE: 'multi-mode-prompt.md',
+  CHAIN_OF_THOUGHT: 'chain-of-thought-prompt.md',
+  OUTPUT_STRUCTURE: 'output-structure-prompt.md',
   OUTPUT_FORMAT: 'output-format-prompt.md',
 } as const;
 

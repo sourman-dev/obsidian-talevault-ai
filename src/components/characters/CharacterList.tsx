@@ -33,7 +33,6 @@ export function CharacterList() {
 
   // Import options modal state
   const [pendingImport, setPendingImport] = useState<ArrayBuffer | null>(null);
-  const [extractNPCs, setExtractNPCs] = useState(false);
 
   const handleCreate = () => {
     setEditingCharacter(null);
@@ -89,7 +88,6 @@ export function CharacterList() {
       const arrayBuffer = await file.arrayBuffer();
       // Show import options modal
       setPendingImport(arrayBuffer);
-      setExtractNPCs(false); // Reset option
     } catch (err) {
       setImportError(err instanceof Error ? err.message : 'Failed to read file');
     }
@@ -103,10 +101,11 @@ export function CharacterList() {
     setPendingImport(null);
 
     try {
+      // Stats and NPC extraction disabled - controlled by feature toggles
       const imported = await importFromPng(pendingImport, {
-        initializeStats: true,
-        extractNPCs,
-        settings: extractNPCs ? settings : undefined,
+        initializeStats: settings.enableStats,
+        extractNPCs: settings.enableNPCExtraction,
+        settings: settings.enableNPCExtraction ? settings : undefined,
       });
       if (imported) {
         // Reload list to get fresh data with correct avatarUrl
@@ -242,20 +241,7 @@ export function CharacterList() {
         title="Import Character"
       >
         <div className="mianix-import-options">
-          <p>Character will be imported with default stats.</p>
-          <label className="mianix-checkbox-label">
-            <input
-              type="checkbox"
-              checked={extractNPCs}
-              onChange={(e) => setExtractNPCs(e.target.checked)}
-            />
-            <span>Extract NPCs from description (uses LLM)</span>
-          </label>
-          {extractNPCs && !settings.llm.apiKey && !settings.providers?.length && (
-            <p className="mianix-warning">
-              ⚠️ No LLM provider configured. NPC extraction will be skipped.
-            </p>
-          )}
+          <p>Import character from PNG file?</p>
         </div>
         <div className="mianix-form-actions">
           <button onClick={() => setPendingImport(null)}>Cancel</button>

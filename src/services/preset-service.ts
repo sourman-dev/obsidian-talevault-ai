@@ -83,6 +83,20 @@ export class PresetService {
   }
 
   /**
+   * Load chain of thought prompt.
+   */
+  async loadChainOfThoughtPrompt(): Promise<string> {
+    return this.loadPreset(PRESET_FILES.CHAIN_OF_THOUGHT);
+  }
+
+  /**
+   * Load output structure prompt.
+   */
+  async loadOutputStructurePrompt(): Promise<string> {
+    return this.loadPreset(PRESET_FILES.OUTPUT_STRUCTURE);
+  }
+
+  /**
    * Load output format prompt.
    */
   async loadOutputFormatPrompt(): Promise<string> {
@@ -94,14 +108,28 @@ export class PresetService {
    */
   async loadAllPresets(): Promise<{
     multiModePrompt: string;
+    chainOfThoughtPrompt: string;
+    outputStructurePrompt: string;
     outputFormatPrompt: string;
   }> {
-    const [multiModePrompt, outputFormatPrompt] = await Promise.all([
+    const [
+      multiModePrompt,
+      chainOfThoughtPrompt,
+      outputStructurePrompt,
+      outputFormatPrompt,
+    ] = await Promise.all([
       this.loadMultiModePrompt(),
+      this.loadChainOfThoughtPrompt(),
+      this.loadOutputStructurePrompt(),
       this.loadOutputFormatPrompt(),
     ]);
 
-    return { multiModePrompt, outputFormatPrompt };
+    return {
+      multiModePrompt,
+      chainOfThoughtPrompt,
+      outputStructurePrompt,
+      outputFormatPrompt,
+    };
   }
 
   private async ensureFolderExists(path: string): Promise<void> {

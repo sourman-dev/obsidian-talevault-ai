@@ -10,9 +10,9 @@ import { MAX_ACTIVE_ENTRIES } from '../types/lorebook';
 import { parseFrontmatter, stringifyFrontmatter } from '../utils/frontmatter';
 import {
   parseLorebookSection,
-  matchesKeywords,
   updateLorebookInContent,
 } from '../utils/lorebook-parser';
+import { createLorebookSearch } from '../utils/lorebook-bm25';
 
 /** Shared lorebook frontmatter */
 interface SharedLorebookMeta {
@@ -103,8 +103,13 @@ export class LorebookService {
   }
 
   /**
-   * Get active entries based on keyword matching against recent messages
+   * Get active entries using BM25 search against recent messages
    * Returns entries sorted by order, limited to MAX_ACTIVE_ENTRIES
+   *
+   * Uses BM25 algorithm for better relevance ranking:
+   * - TF-IDF weighting: rare keywords score higher
+   * - Length normalization: longer entries don't dominate
+   * - Ranking: returns most relevant entries
    */
   async getActiveEntries(
     characterFolderPath: string,
@@ -127,34 +132,17 @@ export class LorebookService {
       allEntries.push(...lb.entries);
     }
 
-    // Filter enabled entries only
-    const enabledEntries = allEntries.filter(e => e.enabled);
+    if (allEntries.length === 0) {
+      return [];
+    }
 
     // Get text to scan (limited by scanDepth)
     const messagesToScan = recentMessages.slice(-scanDepth);
     const scanText = messagesToScan.join('\n');
 
-    // Find matching entries
-    const activeEntries: LorebookEntry[] = [];
-
-    for (const entry of enabledEntries) {
-      // Always active entries always match
-      if (entry.alwaysActive) {
-        activeEntries.push(entry);
-        continue;
-      }
-
-      // Check keyword match
-      if (entry.keys.length > 0 && matchesKeywords(scanText, entry.keys)) {
-        activeEntries.push(entry);
-      }
-    }
-
-    // Sort by order (lower = earlier, higher = later/stronger)
-    activeEntries.sort((a, b) => a.order - b.order);
-
-    // Limit to max entries
-    return activeEntries.slice(0, MAX_ACTIVE_ENTRIES);
+    // Use BM25 search for better relevance ranking
+    const bm25 = createLorebookSearch(allEntries);
+    return bm25.search(scanText, MAX_ACTIVE_ENTRIES);
   }
 
   /**

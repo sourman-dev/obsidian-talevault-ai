@@ -19,7 +19,7 @@ interface ChatViewProps {
  * Mobile-first responsive design
  */
 export function ChatView({ character }: ChatViewProps) {
-  const { app } = useApp();
+  const { app, settings } = useApp();
   const {
     messages,
     characterFolderPath,
@@ -312,10 +312,12 @@ export function ChatView({ character }: ChatViewProps) {
             <span className="mianix-chat-name">{character.name}</span>
           </div>
           <div className="mianix-chat-header-actions">
-            <StatsPanel
-              characterFolderPath={characterFolderPath}
-              onStatsChange={setCharacterStats}
-            />
+            {settings.enableStats && (
+              <StatsPanel
+                characterFolderPath={characterFolderPath}
+                onStatsChange={setCharacterStats}
+              />
+            )}
             <LorebookIndicator
               characterFolderPath={characterFolderPath}
               recentMessages={messages.map(m => m.content)}

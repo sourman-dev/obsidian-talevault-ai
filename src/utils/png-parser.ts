@@ -13,6 +13,20 @@ function decodeBase64ToUtf8(base64: string): string {
   return new TextDecoder('utf-8').decode(bytes);
 }
 
+/** WorldBook entry from PNG character card */
+export interface WorldBookEntry {
+  keys: string[];
+  content: string;
+  comment?: string;
+  enabled?: boolean;
+  position?: string;
+  insertion_order?: number;
+  selective?: boolean;
+  constant?: boolean;
+  use_regex?: boolean;
+  secondary_keys?: string[];
+}
+
 export interface CharacterCardData {
   name: string;
   description: string;
@@ -26,6 +40,8 @@ export interface CharacterCardData {
   tags?: string[];
   creator?: string;
   character_version?: string;
+  /** WorldBook entries from character_book */
+  world_book?: WorldBookEntry[];
 }
 
 /**
@@ -124,6 +140,66 @@ function parseTextChunk(
 }
 
 /**
+ * Parse character_book entries to WorldBookEntry array
+ */
+function parseWorldBook(characterBook: unknown): WorldBookEntry[] {
+  if (!characterBook || typeof characterBook !== 'object') {
+    return [];
+  }
+
+  const book = characterBook as { entries?: unknown };
+  if (!book.entries) {
+    return [];
+  }
+
+  // entries can be array or object with numeric keys
+  let entriesArray: unknown[];
+  if (Array.isArray(book.entries)) {
+    entriesArray = book.entries;
+  } else if (typeof book.entries === 'object') {
+    entriesArray = Object.values(book.entries);
+  } else {
+    return [];
+  }
+
+  return entriesArray
+    .filter((e): e is Record<string, unknown> => e != null && typeof e === 'object')
+    .map((entry) => {
+      // Parse keys - can be array or comma-separated string
+      let keys: string[] = [];
+      if (Array.isArray(entry.keys)) {
+        keys = entry.keys.filter((k): k is string => typeof k === 'string');
+      } else if (typeof entry.keys === 'string') {
+        keys = entry.keys.split(',').map((k: string) => k.trim()).filter(Boolean);
+      } else if (Array.isArray(entry.key)) {
+        keys = entry.key.filter((k): k is string => typeof k === 'string');
+      }
+
+      // Parse secondary_keys similarly
+      let secondaryKeys: string[] | undefined;
+      if (Array.isArray(entry.secondary_keys)) {
+        secondaryKeys = entry.secondary_keys.filter((k): k is string => typeof k === 'string');
+      } else if (typeof entry.secondary_keys === 'string') {
+        secondaryKeys = entry.secondary_keys.split(',').map((k: string) => k.trim()).filter(Boolean);
+      }
+
+      return {
+        keys,
+        content: (entry.content as string) || '',
+        comment: (entry.comment as string) || (entry.name as string),
+        enabled: entry.enabled !== false && entry.disable !== true,
+        position: entry.position as string,
+        insertion_order: typeof entry.insertion_order === 'number' ? entry.insertion_order : undefined,
+        selective: entry.selective === true,
+        constant: entry.constant === true,
+        use_regex: entry.use_regex === true || entry.useRegex === true,
+        secondary_keys: secondaryKeys,
+      };
+    })
+    .filter((e) => e.keys.length > 0 || e.constant); // Keep if has keys or is constant
+}
+
+/**
  * Normalize different character card formats to our standard format
  */
 function normalizeCharacterData(data: Record<string, unknown>): CharacterCardData {
@@ -143,6 +219,7 @@ function normalizeCharacterData(data: Record<string, unknown>): CharacterCardDat
       tags: d.tags as string[],
       creator: d.creator as string,
       character_version: d.character_version as string,
+      world_book: parseWorldBook(d.character_book),
     };
   }
 
@@ -160,6 +237,7 @@ function normalizeCharacterData(data: Record<string, unknown>): CharacterCardDat
     tags: data.tags as string[],
     creator: data.creator as string,
     character_version: data.character_version as string,
+    world_book: parseWorldBook(data.character_book),
   };
 }
 

@@ -5,7 +5,9 @@ import type { CharacterCard, CharacterCardWithPath, CharacterFormData, MianixSet
 import { generateUniqueSlug } from '../utils/slug';
 import { loadAvatarAsDataUrl } from '../utils/avatar';
 import { parseFrontmatter, stringifyFrontmatter } from '../utils/frontmatter';
-import { parsePngCharacterCard } from '../utils/png-parser';
+import { parsePngCharacterCard, type WorldBookEntry } from '../utils/png-parser';
+import { serializeLorebookSection } from '../utils/lorebook-parser';
+import type { LorebookEntry } from '../types/lorebook';
 import { DialogueService } from './dialogue-service';
 import { StatsService } from './stats-service';
 import { NPCExtractionService } from './npc-extraction-service';
@@ -227,6 +229,15 @@ export class CharacterService {
       bodyContent += `\n## Creator Notes\n\n${cardData.creator_notes}\n`;
     }
 
+    // Convert and save worldbook entries as lorebook
+    if (cardData.world_book && cardData.world_book.length > 0) {
+      const lorebookEntries = this.convertWorldBookToLorebook(cardData.world_book);
+      if (lorebookEntries.length > 0) {
+        bodyContent += '\n' + serializeLorebookSection(lorebookEntries);
+        console.log(`✅ Imported ${lorebookEntries.length} lorebook entries from character card`);
+      }
+    }
+
     const content = stringifyFrontmatter(character, bodyContent);
     await vault.create(cardFilePath, content);
 
@@ -322,6 +333,23 @@ export class CharacterService {
     return folder.children
       .filter((child): child is TFolder => child instanceof TFolder)
       .map((f) => f.name);
+  }
+
+  /**
+   * Convert WorldBookEntry[] from PNG to LorebookEntry[] for storage
+   */
+  private convertWorldBookToLorebook(worldBook: WorldBookEntry[]): LorebookEntry[] {
+    return worldBook
+      .filter(entry => entry.enabled !== false) // Only enabled entries
+      .map((entry, index) => ({
+        id: uuidv4(),
+        name: entry.comment || `Entry ${index + 1}`,
+        keys: entry.keys,
+        content: entry.content,
+        alwaysActive: entry.constant === true,
+        order: entry.insertion_order ?? 100,
+        enabled: true,
+      }));
   }
 
   /**

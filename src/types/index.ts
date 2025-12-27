@@ -40,6 +40,10 @@ export interface MianixSettings {
   // === Feature toggles ===
   /** Enable memory extraction after each response */
   enableMemoryExtraction: boolean;
+  /** Enable character stats panel (D&D-style) */
+  enableStats: boolean;
+  /** Enable NPC extraction from character description at import */
+  enableNPCExtraction: boolean;
 
   // === Lorebook settings ===
   /** Number of recent messages to scan for lorebook keywords */
@@ -72,6 +76,8 @@ export const DEFAULT_SETTINGS: MianixSettings = {
     modelName: 'gpt-4o-mini',
   },
   enableMemoryExtraction: false,
+  enableStats: false,
+  enableNPCExtraction: false,
   lorebookScanDepth: 5,
 };
 
