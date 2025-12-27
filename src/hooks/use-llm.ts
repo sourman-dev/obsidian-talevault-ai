@@ -5,6 +5,7 @@ import { PresetService } from '../services/preset-service';
 import { DialogueService } from '../services/dialogue-service';
 import { MemoryExtractionService } from '../services/memory-extraction-service';
 import { LorebookService } from '../services/lorebook-service';
+import { StatsService } from '../services/stats-service';
 import { isMultiProviderConfigured } from '../utils/provider-resolver';
 import { DEFAULT_LLM_OPTIONS } from '../presets';
 import type {
@@ -29,6 +30,7 @@ export function useLlm() {
   const presetService = useMemo(() => new PresetService(app), [app]);
   const dialogueService = useMemo(() => new DialogueService(app), [app]);
   const lorebookService = useMemo(() => new LorebookService(app), [app]);
+  const statsService = useMemo(() => new StatsService(app), [app]);
 
   /**
    * Check if LLM is properly configured
@@ -95,6 +97,12 @@ export function useLlm() {
           context.lorebookContext = lorebookService.formatForContext(activeEntries);
         }
 
+        // Get character stats for context injection
+        const stats = await statsService.loadStats(character.folderPath);
+        if (stats) {
+          context.statsContext = statsService.formatForContext(stats);
+        }
+
         // Use only recent messages (not all history)
         const recentMessages = messages.slice(-RECENT_MESSAGES_COUNT);
 
@@ -137,7 +145,7 @@ export function useLlm() {
         setStreamingContent('');
       }
     },
-    [llmService, presetService, dialogueService, lorebookService, settings, isConfigured]
+    [llmService, presetService, dialogueService, lorebookService, statsService, settings, isConfigured]
   );
 
   /**

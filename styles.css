@@ -1509,6 +1509,342 @@
   flex-shrink: 0;
 }
 
+/* ===== Stats Panel ===== */
+.mianix-stats-panel {
+  position: relative;
+}
+
+.mianix-stats-toggle,
+.mianix-stats-init-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px 8px;
+  font-size: 14px;
+  border-radius: 4px;
+  transition: background 0.15s;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--text-muted);
+}
+
+.mianix-stats-toggle:hover,
+.mianix-stats-init-btn:hover {
+  background: var(--background-modifier-hover);
+  color: var(--text-normal);
+}
+
+.mianix-stats-loading {
+  font-size: 12px;
+  color: var(--text-faint);
+  padding: 4px 8px;
+}
+
+.mianix-stats-content {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 4px;
+  background: var(--background-primary);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 8px;
+  padding: 12px;
+  min-width: 280px;
+  max-width: 320px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+  z-index: 100;
+}
+
+.mianix-stats-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.mianix-stats-edit-btn {
+  background: none;
+  border: 1px solid var(--background-modifier-border);
+  cursor: pointer;
+  padding: 2px 8px;
+  font-size: 12px;
+  border-radius: 4px;
+  color: var(--text-muted);
+}
+
+.mianix-stats-edit-btn:hover {
+  background: var(--background-modifier-hover);
+  color: var(--text-normal);
+}
+
+/* Stats grid - 3 columns on larger screens, 2 on mobile */
+.mianix-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+@media (max-width: 400px) {
+  .mianix-stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.mianix-stat-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 8px;
+  background: var(--background-secondary);
+  border-radius: 6px;
+  border: 1px solid var(--background-modifier-border);
+}
+
+.mianix-stat-box.mianix-stat-editing {
+  background: var(--background-primary);
+  border-color: var(--interactive-accent);
+}
+
+.mianix-stat-label {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.mianix-stat-value {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-normal);
+  line-height: 1.2;
+}
+
+.mianix-stat-input {
+  width: 48px;
+  padding: 4px;
+  text-align: center;
+  font-size: 16px;
+  font-weight: 600;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 4px;
+  background: var(--background-secondary);
+  color: var(--text-normal);
+}
+
+.mianix-stat-input:focus {
+  outline: none;
+  border-color: var(--interactive-accent);
+}
+
+.mianix-stat-mod {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+/* Resource bars (HP/MP) */
+.mianix-stats-resources {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.mianix-resource-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.mianix-resource-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  width: 24px;
+  flex-shrink: 0;
+}
+
+.mianix-resource-track {
+  flex: 1;
+  height: 8px;
+  background: var(--background-modifier-border);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.mianix-resource-fill {
+  height: 100%;
+  background: var(--interactive-accent);
+  transition: width 0.3s ease;
+}
+
+.mianix-resource-fill.mianix-resource-low {
+  background: var(--text-error);
+}
+
+.mianix-resource-value {
+  font-size: 11px;
+  color: var(--text-normal);
+  min-width: 48px;
+  text-align: right;
+}
+
+.mianix-resource-inputs {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.mianix-resource-input {
+  width: 40px;
+  padding: 2px 4px;
+  text-align: center;
+  font-size: 11px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 3px;
+  background: var(--background-secondary);
+  color: var(--text-normal);
+}
+
+.mianix-resource-input:focus {
+  outline: none;
+  border-color: var(--interactive-accent);
+}
+
+/* Conditions */
+.mianix-stats-conditions {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+
+.mianix-conditions-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.mianix-conditions-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  align-items: center;
+}
+
+.mianix-condition-badge {
+  font-size: 10px;
+  padding: 2px 6px;
+  background: var(--background-modifier-error);
+  color: var(--text-error);
+  border-radius: 4px;
+  text-transform: lowercase;
+  cursor: default;
+}
+
+.mianix-condition-add {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.mianix-condition-input {
+  width: 80px;
+  padding: 2px 6px;
+  font-size: 11px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 3px;
+  background: var(--background-secondary);
+  color: var(--text-normal);
+}
+
+.mianix-condition-input:focus {
+  outline: none;
+  border-color: var(--interactive-accent);
+}
+
+.mianix-condition-add-btn {
+  background: var(--interactive-accent);
+  color: var(--text-on-accent);
+  border: none;
+  border-radius: 3px;
+  padding: 2px 6px;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.mianix-condition-add-btn:hover {
+  background: var(--interactive-accent-hover);
+}
+
+/* Custom stats */
+.mianix-stats-custom {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  font-size: 11px;
+}
+
+.mianix-custom-label {
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.mianix-custom-stat {
+  background: var(--background-secondary);
+  padding: 2px 6px;
+  border-radius: 4px;
+  color: var(--text-normal);
+}
+
+/* ===== Import Options ===== */
+.mianix-import-options {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.mianix-import-options p {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.mianix-checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.mianix-checkbox-label input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+
+.mianix-warning {
+  color: var(--text-warning, #f0ad4e);
+  font-size: 12px;
+  padding: 8px;
+  background: var(--background-modifier-warning, rgba(240, 173, 78, 0.1));
+  border-radius: 4px;
+}
+
 /* Touch-friendly tap targets */
 @media (hover: none) {
   .mianix-action-btn {

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useApp } from '../context/app-context';
-import { CharacterService } from '../services/character-service';
+import { CharacterService, type ImportOptions } from '../services/character-service';
 import { useRoleplayStore } from '../store';
 import type { CharacterCardWithPath, CharacterFormData } from '../types';
 
@@ -56,8 +56,8 @@ export function useCharacters() {
     return success;
   };
 
-  const importFromPng = async (pngArrayBuffer: ArrayBuffer) => {
-    const imported = await service.importFromPng(pngArrayBuffer);
+  const importFromPng = async (pngArrayBuffer: ArrayBuffer, options?: ImportOptions) => {
+    const imported = await service.importFromPng(pngArrayBuffer, options);
     if (imported) {
       setCharacters([imported, ...characters]);
     }

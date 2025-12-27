@@ -30,12 +30,14 @@ export interface LoadedPresets {
   outputFormatPrompt: string;
 }
 
-/** Context for LLM including memories and lorebook */
+/** Context for LLM including memories, lorebook, and stats */
 export interface LLMContext {
   /** Retrieved memories from BM25 search (formatted string) */
   relevantMemories?: string;
   /** Active lorebook entries (formatted string) */
   lorebookContext?: string;
+  /** Character stats (formatted string) */
+  statsContext?: string;
 }
 
 /** Token usage info */
@@ -95,14 +97,15 @@ export class LlmService {
   }
 
   /**
-   * Build system prompt from character card + presets + memories + lorebook
+   * Build system prompt from character card + presets + memories + lorebook + stats
    *
    * Context injection order (affects LLM attention):
    * 1. Multi-mode roleplay prompt (persona system)
    * 2. Lorebook entries (world info - injected before character for background)
-   * 3. Character information (name, description, personality, scenario)
-   * 4. Long-term memories (BM25 search results)
-   * 5. Output format instructions
+   * 3. Character stats (RPG stats - injected before character info)
+   * 4. Character information (name, description, personality, scenario)
+   * 5. Long-term memories (BM25 search results)
+   * 6. Output format instructions
    *
    * Note: Items closer to the end have stronger influence on responses.
    */
@@ -123,7 +126,13 @@ export class LlmService {
       parts.push(context.lorebookContext);
     }
 
-    // 3. Character card info
+    // 3. Character stats (RPG stats, injected before character info)
+    if (context?.statsContext) {
+      parts.push('\n\n---\n');
+      parts.push(context.statsContext);
+    }
+
+    // 4. Character card info
     parts.push('\n\n---\n## Character Information\n');
     parts.push(`**Name:** ${character.name}`);
 
@@ -139,14 +148,14 @@ export class LlmService {
       parts.push(`\n**Scenario:** ${character.scenario}`);
     }
 
-    // 4. Long-term memories (from BM25 search)
+    // 5. Long-term memories (from BM25 search)
     if (context?.relevantMemories) {
       parts.push('\n\n---\n## Long-term Memory\n');
       parts.push('**Thông tin quan trọng từ các cuộc trò chuyện trước:**\n');
       parts.push(context.relevantMemories);
     }
 
-    // 5. Output format with responseLength
+    // 6. Output format with responseLength
     const outputFormat = presets.outputFormatPrompt.replace(
       '${responseLength}',
       llmOptions.responseLength.toString()

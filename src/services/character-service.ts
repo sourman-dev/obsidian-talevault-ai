@@ -1,12 +1,24 @@
 import { App, TFile, TFolder, normalizePath } from 'obsidian';
 import { v4 as uuidv4 } from 'uuid';
 import { CHARACTERS_FOLDER } from '../constants';
-import type { CharacterCard, CharacterCardWithPath, CharacterFormData } from '../types';
+import type { CharacterCard, CharacterCardWithPath, CharacterFormData, MianixSettings } from '../types';
 import { generateUniqueSlug } from '../utils/slug';
 import { loadAvatarAsDataUrl } from '../utils/avatar';
 import { parseFrontmatter, stringifyFrontmatter } from '../utils/frontmatter';
 import { parsePngCharacterCard } from '../utils/png-parser';
 import { DialogueService } from './dialogue-service';
+import { StatsService } from './stats-service';
+import { NPCExtractionService } from './npc-extraction-service';
+
+/** Options for character import */
+export interface ImportOptions {
+  /** Initialize stats.json on import */
+  initializeStats?: boolean;
+  /** Extract NPCs from character description */
+  extractNPCs?: boolean;
+  /** Settings for NPC extraction (required if extractNPCs is true) */
+  settings?: MianixSettings;
+}
 
 export class CharacterService {
   constructor(private app: App) {}
@@ -163,8 +175,12 @@ export class CharacterService {
   /**
    * Import character from PNG file (SillyTavern/Chub.ai format)
    * Extracts character data from PNG metadata and saves avatar
+   * @param options Optional import settings (stats init, NPC extraction)
    */
-  async importFromPng(pngArrayBuffer: ArrayBuffer): Promise<CharacterCardWithPath | null> {
+  async importFromPng(
+    pngArrayBuffer: ArrayBuffer,
+    options: ImportOptions = {}
+  ): Promise<CharacterCardWithPath | null> {
     const { vault } = this.app;
 
     // Parse PNG metadata
@@ -221,6 +237,33 @@ export class CharacterService {
     // Create first message if exists
     if (cardData.first_mes) {
       await dialogueService.createFirstMessage(folderPath, cardData.first_mes);
+    }
+
+    // Initialize stats if requested (defaults to true)
+    if (options.initializeStats !== false) {
+      const statsService = new StatsService(this.app);
+      await statsService.initializeStats(folderPath);
+    }
+
+    // Extract NPCs if requested and settings provided
+    if (options.extractNPCs && options.settings) {
+      try {
+        const npcService = new NPCExtractionService(this.app, options.settings);
+        const description = [
+          cardData.description || '',
+          cardData.personality || '',
+          cardData.scenario || '',
+        ].join('\n\n');
+
+        const npcs = await npcService.extractNPCs(description, character.id);
+        if (npcs.length > 0) {
+          await npcService.saveNPCs(folderPath, npcs);
+          console.log(`✅ Extracted ${npcs.length} NPCs from character card`);
+        }
+      } catch (e) {
+        console.error('NPC extraction failed (continuing import):', e);
+        // Don't fail import if NPC extraction fails
+      }
     }
 
     // Get avatar URL for display (use data URL for mobile compatibility)

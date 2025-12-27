@@ -3,10 +3,12 @@ import { useApp } from '../../context/app-context';
 import { MessageInput } from './MessageInput';
 import { LLMOptionsPanel } from './LLMOptionsPanel';
 import { LorebookIndicator } from './LorebookIndicator';
+import { StatsPanel } from './StatsPanel';
 import { useDialogue } from '../../hooks/use-dialogue';
 import { useLlm } from '../../hooks/use-llm';
 import type { LLMResponse } from '../../services/llm-service';
 import type { CharacterCardWithPath, DialogueMessageWithContent, MessageTokenUsage } from '../../types';
+import type { CharacterStats } from '../../types/stats';
 
 interface ChatViewProps {
   character: CharacterCardWithPath | null;
@@ -42,6 +44,7 @@ export function ChatView({ character }: ChatViewProps) {
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [inputValue, setInputValue] = useState('');
+  const [characterStats, setCharacterStats] = useState<CharacterStats | null>(null);
 
   // Auto-scroll to bottom
   useEffect(() => {
@@ -309,6 +312,10 @@ export function ChatView({ character }: ChatViewProps) {
             <span className="mianix-chat-name">{character.name}</span>
           </div>
           <div className="mianix-chat-header-actions">
+            <StatsPanel
+              characterFolderPath={characterFolderPath}
+              onStatsChange={setCharacterStats}
+            />
             <LorebookIndicator
               characterFolderPath={characterFolderPath}
               recentMessages={messages.map(m => m.content)}

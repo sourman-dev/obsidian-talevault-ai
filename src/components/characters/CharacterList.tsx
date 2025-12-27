@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react';
 import { useCharacters } from '../../hooks/use-characters';
 import { useRoleplayStore } from '../../store';
+import { useApp } from '../../context/app-context';
 import { CharacterForm } from './CharacterForm';
 import { Modal } from '../ui/Modal';
 import type { CharacterCardWithPath, CharacterFormData } from '../../types';
@@ -17,6 +18,7 @@ export function CharacterList() {
     importFromPng,
   } = useCharacters();
 
+  const { settings } = useApp();
   const { currentCharacter, setCurrentCharacter } = useRoleplayStore();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -28,6 +30,10 @@ export function CharacterList() {
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [importError, setImportError] = useState<string | null>(null);
   const [isImporting, setIsImporting] = useState(false);
+
+  // Import options modal state
+  const [pendingImport, setPendingImport] = useState<ArrayBuffer | null>(null);
+  const [extractNPCs, setExtractNPCs] = useState(false);
 
   const handleCreate = () => {
     setEditingCharacter(null);
@@ -79,12 +85,29 @@ export function CharacterList() {
       return;
     }
 
-    setIsImporting(true);
-    setImportError(null);
-
     try {
       const arrayBuffer = await file.arrayBuffer();
-      const imported = await importFromPng(arrayBuffer);
+      // Show import options modal
+      setPendingImport(arrayBuffer);
+      setExtractNPCs(false); // Reset option
+    } catch (err) {
+      setImportError(err instanceof Error ? err.message : 'Failed to read file');
+    }
+  };
+
+  const handleConfirmImport = async () => {
+    if (!pendingImport) return;
+
+    setIsImporting(true);
+    setImportError(null);
+    setPendingImport(null);
+
+    try {
+      const imported = await importFromPng(pendingImport, {
+        initializeStats: true,
+        extractNPCs,
+        settings: extractNPCs ? settings : undefined,
+      });
       if (imported) {
         // Reload list to get fresh data with correct avatarUrl
         await reload();
@@ -208,6 +231,40 @@ export function CharacterList() {
             onClick={() => deleteConfirm && handleDelete(deleteConfirm)}
           >
             Delete
+          </button>
+        </div>
+      </Modal>
+
+      {/* Import Options Modal */}
+      <Modal
+        isOpen={!!pendingImport}
+        onClose={() => setPendingImport(null)}
+        title="Import Character"
+      >
+        <div className="mianix-import-options">
+          <p>Character will be imported with default stats.</p>
+          <label className="mianix-checkbox-label">
+            <input
+              type="checkbox"
+              checked={extractNPCs}
+              onChange={(e) => setExtractNPCs(e.target.checked)}
+            />
+            <span>Extract NPCs from description (uses LLM)</span>
+          </label>
+          {extractNPCs && !settings.llm.apiKey && !settings.providers?.length && (
+            <p className="mianix-warning">
+              ⚠️ No LLM provider configured. NPC extraction will be skipped.
+            </p>
+          )}
+        </div>
+        <div className="mianix-form-actions">
+          <button onClick={() => setPendingImport(null)}>Cancel</button>
+          <button
+            className="mianix-btn-primary"
+            onClick={handleConfirmImport}
+            disabled={isImporting}
+          >
+            {isImporting ? 'Importing...' : 'Import'}
           </button>
         </div>
       </Modal>
