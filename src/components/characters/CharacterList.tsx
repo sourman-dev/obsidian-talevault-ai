@@ -254,6 +254,9 @@ export function CharacterList() {
           </button>
         </div>
       </Modal>
+
+      {/* Version badge */}
+      <div className="mianix-version-badge">v0.2.6</div>
     </div>
   );
 }
