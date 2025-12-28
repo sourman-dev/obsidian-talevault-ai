@@ -53,57 +53,29 @@ export function ChatView({ character }: ChatViewProps) {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, streamingContent, isGenerating]);
 
-  // Parse "Gợi ý" section from LLM response
-  // Format: > **Gợi ý:** [action1] [action2] [action3]
-  // Mobile may have different line endings or multi-line format
+  // Parse suggestions from ```suggestions code block
+  // Format: ```suggestions\naction1\naction2\naction3\n```
   const parseSuggestedPrompts = useCallback((response: string): string[] => {
-    // Normalize line endings (CRLF → LF)
-    const normalizedResponse = response.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+    // Normalize line endings
+    const normalized = response.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
 
-    // Strategy 1: Find ALL [...] brackets in ENTIRE response (most reliable)
-    // This handles cases where suggestions span multiple lines
-    const allBrackets = normalizedResponse.match(/\[([^\]]+)\]/g);
-    if (allBrackets && allBrackets.length >= 3) {
-      // Take last 3 brackets (suggestions are typically at the end)
-      return allBrackets
+    // Extract content from ```suggestions ... ``` block
+    const match = normalized.match(/```suggestions\n([\s\S]*?)```/);
+    if (match) {
+      return match[1]
+        .split('\n')
+        .map((s) => s.trim())
+        .filter((s) => s.length > 0 && s.length < 200)
+        .slice(0, 3);
+    }
+
+    // Fallback: try old [...] bracket format for backwards compatibility
+    const brackets = normalized.match(/\[([^\]]+)\]/g);
+    if (brackets && brackets.length > 0) {
+      return brackets
         .slice(-3)
         .map((m) => m.slice(1, -1).trim())
         .filter((s) => s.length > 0 && s.length < 200);
-    }
-
-    // Strategy 2: Look for "Gợi ý" marker and extract after it
-    const goiYIndex = normalizedResponse.indexOf('**Gợi ý:**');
-    const altGoiYIndex = normalizedResponse.indexOf('Gợi ý:');
-    const startIndex = goiYIndex !== -1 ? goiYIndex + 11 : (altGoiYIndex !== -1 ? altGoiYIndex + 7 : -1);
-
-    if (startIndex !== -1) {
-      const afterGoiY = normalizedResponse.slice(startIndex);
-
-      // Try brackets first
-      const bracketMatches = afterGoiY.match(/\[([^\]]+)\]/g);
-      if (bracketMatches && bracketMatches.length > 0) {
-        return bracketMatches
-          .map((m) => m.slice(1, -1).trim())
-          .filter((s) => s.length > 0 && s.length < 200)
-          .slice(0, 3);
-      }
-
-      // Fallback: try numbered list format (1. action, 2. action, 3. action)
-      const numberedMatches = afterGoiY.match(/\d+\.\s*([^\n]+)/g);
-      if (numberedMatches && numberedMatches.length > 0) {
-        return numberedMatches
-          .map((m) => m.replace(/^\d+\.\s*/, '').trim())
-          .filter((s) => s.length > 0 && s.length < 200)
-          .slice(0, 3);
-      }
-    }
-
-    // Strategy 3: If we have some brackets, use them even if fewer than 3
-    if (allBrackets && allBrackets.length > 0) {
-      return allBrackets
-        .map((m) => m.slice(1, -1).trim())
-        .filter((s) => s.length > 0 && s.length < 200)
-        .slice(0, 3);
     }
 
     return [];

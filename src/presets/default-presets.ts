@@ -92,9 +92,13 @@ Xuất nội dung phản hồi chính của bạn bao gồm hội thoại nhân 
 
 ### Suggested Next Actions
 
-Sau phần response chính, thêm một dòng gợi ý ngắn gọn cho người chơi:
+Sau phần response chính, thêm gợi ý theo định dạng CHÍNH XÁC sau (mỗi gợi ý trên 1 dòng):
 
-> **Gợi ý:** [hành động 1] [hành động 2] [hành động 3]`;
+\`\`\`suggestions
+gợi ý hành động 1
+gợi ý hành động 2
+gợi ý hành động 3
+\`\`\``;
 
 /**
  * Director prompt - Decides WHAT happens in the story

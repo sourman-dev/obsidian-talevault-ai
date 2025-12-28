@@ -1,7 +1,7 @@
 {
   "id": "tale-vault-ai",
   "name": "TaleVault AI",
-  "version": "0.2.8",
+  "version": "0.2.9",
   "minAppVersion": "1.0.0",
   "description": "AI roleplay with character cards and LLM integration",
   "author": "Sourman",
