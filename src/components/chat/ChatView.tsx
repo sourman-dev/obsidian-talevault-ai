@@ -55,29 +55,58 @@ export function ChatView({ character }: ChatViewProps) {
 
   // Parse "Gợi ý" section from LLM response
   // Format: > **Gợi ý:** [action1] [action2] [action3]
+  // Mobile may have different line endings or multi-line format
   const parseSuggestedPrompts = useCallback((response: string): string[] => {
-    // Match the Gợi ý line - greedy match to get entire line
-    const goiYMatch = response.match(/>\s*\*\*Gợi ý:\*\*\s*(.+)$/m);
-    if (!goiYMatch) return [];
+    // Normalize line endings (CRLF → LF)
+    const normalizedResponse = response.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
 
-    const goiYSection = goiYMatch[1];
+    // Strategy 1: Find ALL [...] brackets in ENTIRE response (most reliable)
+    // This handles cases where suggestions span multiple lines
+    const allBrackets = normalizedResponse.match(/\[([^\]]+)\]/g);
+    if (allBrackets && allBrackets.length >= 3) {
+      // Take last 3 brackets (suggestions are typically at the end)
+      return allBrackets
+        .slice(-3)
+        .map((m) => m.slice(1, -1).trim())
+        .filter((s) => s.length > 0 && s.length < 200);
+    }
 
-    // Extract content inside [...] brackets
-    const bracketMatches = goiYSection.match(/\[([^\]]+)\]/g);
-    if (bracketMatches && bracketMatches.length > 0) {
-      return bracketMatches
-        .map((m) => m.slice(1, -1).trim()) // Remove brackets
+    // Strategy 2: Look for "Gợi ý" marker and extract after it
+    const goiYIndex = normalizedResponse.indexOf('**Gợi ý:**');
+    const altGoiYIndex = normalizedResponse.indexOf('Gợi ý:');
+    const startIndex = goiYIndex !== -1 ? goiYIndex + 11 : (altGoiYIndex !== -1 ? altGoiYIndex + 7 : -1);
+
+    if (startIndex !== -1) {
+      const afterGoiY = normalizedResponse.slice(startIndex);
+
+      // Try brackets first
+      const bracketMatches = afterGoiY.match(/\[([^\]]+)\]/g);
+      if (bracketMatches && bracketMatches.length > 0) {
+        return bracketMatches
+          .map((m) => m.slice(1, -1).trim())
+          .filter((s) => s.length > 0 && s.length < 200)
+          .slice(0, 3);
+      }
+
+      // Fallback: try numbered list format (1. action, 2. action, 3. action)
+      const numberedMatches = afterGoiY.match(/\d+\.\s*([^\n]+)/g);
+      if (numberedMatches && numberedMatches.length > 0) {
+        return numberedMatches
+          .map((m) => m.replace(/^\d+\.\s*/, '').trim())
+          .filter((s) => s.length > 0 && s.length < 200)
+          .slice(0, 3);
+      }
+    }
+
+    // Strategy 3: If we have some brackets, use them even if fewer than 3
+    if (allBrackets && allBrackets.length > 0) {
+      return allBrackets
+        .map((m) => m.slice(1, -1).trim())
         .filter((s) => s.length > 0 && s.length < 200)
         .slice(0, 3);
     }
 
-    // Fallback: split by common separators
-    const items = goiYSection
-      .split(/(?:\d+\.\s*|[;]\s*|\n\s*[-•]\s*)/)
-      .map((s) => s.trim())
-      .filter((s) => s.length > 0 && s.length < 200);
-
-    return items.slice(0, 3);
+    return [];
   }, []);
 
   // Regenerate latest turn - triggered by command palette or button
